@@ -1,0 +1,16 @@
+{
+	"name": "Cold Path 05 Data Exploration with SQLOD",
+	"properties": {
+		"content": {
+			"query": "SELECT\n    TOP 100 *\nFROM\n    OPENROWSET(        \n        BULK 'https://synapse580.dfs.core.windows.net/curateddata/orders/OrdersByState/part-00000-e87afe75-9c48-4cbf-83bc-677be10ae726-c000.snappy.parquet',\n        FORMAT='PARQUET'\n    ) AS [result]\n",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"name": "master",
+				"type": "SqlOnDemand"
+			}
+		},
+		"type": "SqlQuery"
+	}
+}

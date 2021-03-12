@@ -1,0 +1,16 @@
+{
+	"name": "Predict 01 Create Trips Table",
+	"properties": {
+		"content": {
+			"query": "SET ANSI_NULLS ON\nGO\nSET QUOTED_IDENTIFIER ON\nGO\n\nCREATE TABLE [dbo].[Trips]\n( \n    [vendorID] [real]  NOT NULL,\n    [passengerCount] [real]  NULL,\n    [tripDistance] [real]  NULL,\n    [month_num] [real]  NULL,\n    [day_of_month] [real]  NULL,\n    [day_of_week] [real]  NULL,\n    [day_of_hour] [real]  NULL\n)\nWITH\n(\n    DISTRIBUTION = ROUND_ROBIN,\n    HEAP\n)\nGO\n",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"name": "master",
+				"type": "SqlOnDemand"
+			}
+		},
+		"type": "SqlQuery"
+	}
+}

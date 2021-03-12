@@ -1,0 +1,212 @@
+{
+	"name": "SparkSQL 0403 Transfer Spark table to Dedicated SQL Pool",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "spark1",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"synapse_widget": {
+				"version": "0.1"
+			},
+			"kernelspec": {
+				"name": "synapse_sparksql",
+				"display_name": "Synapse SQL"
+			},
+			"language_info": {
+				"name": "sql"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/b9913441-8a8e-4fb1-812a-9fcbe1dd9aba/resourceGroups/Synapse580/providers/Microsoft.Synapse/workspaces/synapse580/bigDataPools/spark1",
+				"name": "spark1",
+				"type": "Spark",
+				"endpoint": "https://synapse580.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/spark1",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net"
+				},
+				"sparkVersion": "2.4",
+				"nodeCount": 10,
+				"cores": 8,
+				"memory": 56,
+				"extraHeader": null
+			}
+		},
+		"cells": [
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Transfer Spark table to Dedicated SQL Pool\r\n",
+					"## Azure Synapse Apache Spark to Synapse SQL connector\r\n",
+					"\r\n",
+					"https://docs.microsoft.com/en-us/azure/synapse-analytics/spark/synapse-spark-sql-pool-import-export\r\n",
+					"\r\n",
+					"The Azure Synapse Apache Spark pool to Synapse SQL connector is a data source implementation for Apache Spark. It uses the Azure Data Lake Storage Gen2 and Polybase in dedicated SQL pools to efficiently transfer data between the Spark cluster and the Synapse dedicated SQL instance\r\n",
+					"\r\n",
+					"\r\n",
+					"<img src=\"https://docs.microsoft.com/en-us/azure/synapse-analytics/spark/media/synapse-spark-sqlpool-import-export/arch1.png\" alt=\"Architecture Diagram\" width=\"50%\"/>\r\n",
+					"\r\n",
+					"## Prerequisites\r\n",
+					"SQL Script: SparkSQL 0302 Prereq.sql\r\n",
+					"Synapse Notebook: SparkSQL 0402 Ingest Unmanaged Spark Table.ipy\r\n",
+					"\r\n",
+					"Must be a member of db_exporter role in the database/SQL pool you want to transfer data to/from.\r\n",
+					"\r\n",
+					"Must be a member of Storage Blob Data Contributor role on the default storage account.\r\n",
+					"\r\n",
+					"The table must not exist in the dedicated SQL pool or an error will be returned stating that \"There is already an object named...\"\r\n",
+					"\r\n",
+					"### To create users, connect to the SQL pool database, and follow these examples:\r\n",
+					"--SQL User\r\n",
+					"CREATE USER Mary FROM LOGIN Mary;\r\n",
+					"\r\n",
+					"--Azure Active Directory User\r\n",
+					"CREATE USER [mike@contoso.com] FROM EXTERNAL PROVIDER;\r\n",
+					"\r\n",
+					"### To assign a role:\r\n",
+					"--SQL User\r\n",
+					"EXEC sp_addrolemember 'db_exporter', 'Mary';\r\n",
+					"\r\n",
+					"--Azure Active Directory User\r\n",
+					"EXEC sp_addrolemember 'db_exporter',[mike@contoso.com]\r\n",
+					"\r\n",
+					"\r\n",
+					"### The table must not exist in the dedicated SQL pool \r\n",
+					"IF object_id ('Orders.OrdersByState','U') IS NOT NULL\r\n",
+					"DROP TABLE Orders.OrdersByState\r\n",
+					"\r\n",
+					"IF NOT EXISTS ( SELECT  *\r\n",
+					"                FROM    sys.schemas\r\n",
+					"                WHERE   name = N'Orders' )\r\n",
+					"    EXEC('CREATE SCHEMA [Orders]');\r\n",
+					"GO"
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Transfer data to a dedicated SQL Pool\r\n",
+					"Load the Spark table into a dataframe and write to dedicated SQL Pool\r\n",
+					"\r\n",
+					"The write API creates the table in the dedicated SQL pool and then invokes Polybase to load the data. The table must not exist in the dedicated SQL pool or an error will be returned stating that \"There is already an object named...\"\r\n",
+					"\r\n",
+					"## TableType values:\r\n",
+					"\r\n",
+					"Constants.INTERNAL - Managed table in dedicated SQL pool\r\n",
+					"\r\n",
+					"Constants.EXTERNAL - External table in dedicated SQL pool"
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"microsoft": {
+						"language": "scala"
+					},
+					"collapsed": true
+				},
+				"source": [
+					"%%spark\r\n",
+					"val df = spark.sql(\"SELECT * FROM orders.ordersbystate\")\r\n",
+					"df.write.synapsesql(\"sqlpool1.Orders.OrdersByState\", Constants.INTERNAL)"
+				],
+				"attachments": null,
+				"execution_count": 5
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Reset"
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"DROP TABLE IF EXISTS Orders.OrdersByState"
+				],
+				"attachments": null,
+				"execution_count": 10
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"DROP DATABASE IF EXISTS Orders"
+				],
+				"attachments": null,
+				"execution_count": null
+			}
+		]
+	}
+}

@@ -1,0 +1,16 @@
+{
+	"name": "Predict 04 Load Trips table with data",
+	"properties": {
+		"content": {
+			"query": "-- type your sql script here, we now have intellisense\n\nIF NOT EXISTS (SELECT * FROM sys.objects WHERE NAME = 'Trips' AND TYPE = 'U')\nCREATE TABLE dbo.Trips\n( \n    [vendorID] [real]  NOT NULL,\n    [passengerCount] [real]  NULL,\n    [tripDistance] [real]  NULL,\n    [month_num] [real]  NULL,\n    [day_of_month] [real]  NULL,\n    [day_of_week] [real]  NULL,\n    [day_of_hour] [real]  NULL\n)\nWITH\n(\n    DISTRIBUTION = ROUND_ROBIN,\n    HEAP\n)\nGO\n\n--Uncomment the 4 lines below to create a stored procedure for data pipeline orchestration​                 \n--CREATE PROC bulk_load_test\n--AS\n--BEGIN\nCOPY INTO dbo.Trips\n(vendorID 1, passengerCount 2, tripDistance 3, month_num 4, day_of_month 5, day_of_week 6, day_of_hour 7)\nFROM 'https://<storage_account_name>.dfs.core.windows.net/<container_name>/<folder_name>/trips.txt'\nWITH\n(\n\tFILE_TYPE = 'CSV'\n\t,MAXERRORS = 0\n\t,FIELDQUOTE = '\"'\n\t,FIELDTERMINATOR = '\t'\n\t,FIRSTROW = 2\n\t,ERRORFILE = 'https://<storage_account_name>.dfs.core.windows.net/<container_name>/'\n\t,IDENTITY_INSERT = 'OFF'\n)\n--END\nGO\n\nSELECT TOP 100 * FROM dbo.Trips\nGO\n\n",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"name": "master",
+				"type": "SqlOnDemand"
+			}
+		},
+		"type": "SqlQuery"
+	}
+}

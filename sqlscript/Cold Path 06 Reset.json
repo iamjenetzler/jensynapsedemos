@@ -1,0 +1,16 @@
+{
+	"name": "Cold Path 06 Reset",
+	"properties": {
+		"content": {
+			"query": "revoke select on wwi.EmployeePIIData TO [jeetzler@microsoft.com] \nREVOKE SELECT ON wwi.EmployeePIIData TO [j_etzler83@hotmail.com] \n\nDROP SECURITY POLICY StateFilter_rolemember\nDROP FUNCTION wwi.fn_securitypredicate_rolemember\nDROP FUNCTION Security.fn_securitypredicate_rolemember\nDROP SCHEMA Security;\n\nDROP TABLE wwi.FactSale\nDROP TABLE wwi.FactPurchase\nDROP TABLE wwi.FactOrder\nDROP TABLE wwi.FactMovement\nDROP TABLE wwi.DimTransactionType\nDROP TABLE wwi.DimSupplier\nDROP TABLE wwi.DimStockItem\nDROP TABLE wwi.DimPaymentMethod\nDROP TABLE wwi.DimEmployee\nDROP TABLE wwi.DimDate\nDROP TABLE wwi.DimCity\nDROP TABLE wwi.FactTransaction\nDROP TABLE wwi.FactStockHolding\nDROP TABLE wwi.DimCustomer\nDROP TABLE wwi.PostalCodes\nDROP TABLE wwi.EmployeePIIData\nDROP SCHEMA wwi\n\nexec sp_droprolemember db_datareader, [j_etzler83@hotmail.com] \nexec sp_droprolemember db_datareader, [jeetzler@microsoft.com] \n\nexec sp_droprolemember [ca], [j_etzler83@hotmail.com] \nexec sp_droprolemember [pa], [jeetzler@microsoft.com] \nexec sp_droprolemember [ny], [jeetzler@microsoft.com] \n\ndrop role [ca]\ndrop role [pa]\ndrop role [ny]\n\nrevoke IMPERSONATE ON USER::[j_etzler83@hotmail.com] TO [jeetzler@microsoft.com];\nrevoke IMPERSONATE ON USER::[jeetzler@microsoft.com] TO [j_etzler83@hotmail.com];\n\nREVOKE CONNECT TO [j_etzler83@hotmail.com] \nREVOKE CONNECT TO [jeetzler@microsoft.com] \n\nDROP USER [jeetzler@microsoft.com]\nDROP USER [j_etzler83@hotmail.com]",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"name": "sqlpool1",
+				"type": "SqlPool"
+			}
+		},
+		"type": "SqlQuery"
+	}
+}

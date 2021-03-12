@@ -1,0 +1,16 @@
+{
+	"name": "Cold Path 03 Example run for RLS DDM",
+	"properties": {
+		"content": {
+			"query": "--Returns records for CA state\nEXECUTE AS USER ='j_etzler83@hotmail.com'\nSELECT \n    Count(*) as EmployeeCount\nFROM \n    wwi.EmployeePIIData;\n\nSELECT \n    [FirstName]\n    ,[LastName]\n    ,[State]\n    ,[Phone]\n    ,[Email]\nFROM \n    wwi.EmployeePIIData ;\nrevert\n\n\n\n--Returns records for PA and NY state\nEXECUTE AS USER ='jeetzler@microsoft.com'\nSELECT \n    Count(*) as EmployeeCount\nFROM \n    wwi.EmployeePIIData;\n\nSELECT \n    [FirstName]\n    ,[LastName]\n    ,[State]\n    ,[Phone]\n    ,[Email]    \nFROM \n    wwi.EmployeePIIData;\nrevert",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"name": "sqlpool1",
+				"type": "SqlPool"
+			}
+		},
+		"type": "SqlQuery"
+	}
+}

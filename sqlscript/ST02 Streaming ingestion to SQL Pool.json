@@ -1,0 +1,16 @@
+{
+	"name": "ST02 Streaming ingestion to SQL Pool",
+	"properties": {
+		"content": {
+			"query": "-- show number of records ingested to far\n-- run below query 2 times with a second or more gap between two runs\n\nSELECT count_big(*) \nFROM dbo.dwgranular \n\n-- diff number of records\n\nDECLARE @before bigint =  ; -- Copy value from first run\nDECLARE @after bigint =   ; -- Copy value from second run\nDECLARE @million float = 1000000;\nSELECT ROUND( (@after - @before) / @million , 2 ) AS RecordsMil",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"name": "sqlpool1",
+				"type": "SqlPool"
+			}
+		},
+		"type": "SqlQuery"
+	}
+}

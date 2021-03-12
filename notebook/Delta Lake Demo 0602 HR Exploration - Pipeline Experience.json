@@ -1,0 +1,182 @@
+{
+	"name": "Delta Lake Demo 0602 HR Exploration - Pipeline Experience",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "sparkpool3",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "56g",
+			"driverCores": 8,
+			"executorMemory": "56g",
+			"executorCores": 8,
+			"numExecutors": 2
+		},
+		"metadata": {
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/b9913441-8a8e-4fb1-812a-9fcbe1dd9aba/resourceGroups/Synapse580/providers/Microsoft.Synapse/workspaces/synapse580/bigDataPools/sparkpool3",
+				"name": "sparkpool3",
+				"type": "Spark",
+				"endpoint": "https://synapse580.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/sparkpool3",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net"
+				},
+				"sparkVersion": "2.4",
+				"nodeCount": 3,
+				"cores": 8,
+				"memory": 56
+			}
+		},
+		"cells": [
+			{
+				"cell_type": "markdown",
+				"source": [
+					"# Using Linux foundation Delta Lake in Synapse Spark\n",
+					"In this notebook, how to read the delta table, how to write to delta table and timetravel is demonstrated"
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"# Set the strorage path info\n",
+					"account_name = 'synapse580' # fill in your primary storage account name\n",
+					"container_name = 'rawdata' # fill in your container name\n",
+					"relative_delta_path='HR/delta' # fill in your relative delta lake folder path\n",
+					"\n",
+					"adls_path = 'abfss://%s@%s.dfs.core.windows.net/' % (container_name, account_name)\n",
+					"print('Primary storage account path: ' + adls_path)\n",
+					"\n",
+					"# Delta Lake relative path\n",
+					"deltatablepath = adls_path + relative_delta_path + '/'\n",
+					"print('Delta Lake path: ' + deltatablepath)"
+				],
+				"attachments": null,
+				"execution_count": 6
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"### Read data in delta format\n",
+					"\n",
+					""
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"# same as before, just showing ten rows from the delta lake - this time it was created with a dataflow instead of spark\n",
+					"df_hr = spark.read.format(\"delta\").load(deltatablepath)\n",
+					"df_hr.show(10)"
+				],
+				"attachments": null,
+				"execution_count": 3
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"### Add New Column YearsOfService\n",
+					"\n",
+					""
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"# use spark to add the YearsOfService column to a new data frame\n",
+					"import pyspark.sql.functions as f\n",
+					"\n",
+					"df_hr_service = df_hr.withColumn('YearsOfService',2020-f.year(f.to_timestamp('DateofHire', 'MM/dd/yyyy')))\n",
+					"df_hr_service.show(5)"
+				],
+				"attachments": null,
+				"execution_count": 4
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"### Overwrite the entire delta table\n",
+					""
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"# Overwrite the delta table to include the new column \r\n",
+					"df_hr_service.write.mode(\"overwrite\").format(\"delta\").option(\"mergeSchema\",\"true\").save(deltatablepath)"
+				],
+				"attachments": null,
+				"execution_count": 6
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"### Validate delta table is updated with new column\n",
+					""
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"# validate the column is added\n",
+					"hrdataframe = spark.read.format(\"delta\").load(deltatablepath)\n",
+					"hrdataframe.show(10)"
+				],
+				"attachments": null,
+				"execution_count": 7
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"### Check version with timetravel\n",
+					"\n",
+					"we can see here yearsOfService column is not present in original delta table"
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"# same process of showing time travel (delta lake is an ADLS functionality)\n",
+					"hrdataoriginal = (spark\n",
+					"                    .read\n",
+					"                    .format(\"delta\")\n",
+					"                    .option(\"versionAsOf\",0)\n",
+					"                    .load(deltatablepath)\n",
+					"                    )\n",
+					"hrdataoriginal.show(10)"
+				],
+				"attachments": null,
+				"execution_count": 8
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"# load delta table to a dataframe and show the history\r\n",
+					"from pyspark.sql.functions import *\r\n",
+					"from delta.tables import *\r\n",
+					"\r\n",
+					"deltaTable = DeltaTable.forPath(spark,deltatablepath)\r\n",
+					"\r\n",
+					"deltaTable.history().show()"
+				],
+				"attachments": null,
+				"execution_count": 12
+			}
+		]
+	}
+}

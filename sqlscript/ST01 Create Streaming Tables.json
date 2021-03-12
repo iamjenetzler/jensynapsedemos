@@ -1,0 +1,16 @@
+{
+	"name": "ST01 Create Streaming Tables",
+	"properties": {
+		"content": {
+			"query": "IF EXISTS (SELECT * FROM sysobjects WHERE NAME='dwgranular' and xtype='U')\n    DROP TABLE [dbo].[dwgranular]\n\nIF NOT EXISTS (SELECT * FROM sysobjects WHERE NAME='dwaggregate' and xtype='U')\n    DROP TABLE [dbo].[dwaggregate]\n\n\nIF NOT EXISTS (SELECT * FROM sysobjects WHERE NAME='dwgranular' and xtype='U')\nCREATE TABLE [dbo].[dwgranular]\n( \n    [Pkey] [float]  NULL,\n    [Time] [nvarchar](4000)  NULL,\n    [Dspl] [nvarchar](4000)  NULL,\n    [Dspl2] [nvarchar](4000)  NULL,\n    [Temp] [float]  NULL,\n    [Hmdt] [float]  NULL,\n    [EventProcessedUtcTime] [datetime]  NULL,\n    [PartitionId] [float]  NULL,\n    [EventEnqueuedUtcTime] [datetime]  NULL\n)\nGO \n\nIF NOT EXISTS (SELECT * FROM sysobjects WHERE NAME='dwaggregate' and xtype='U')\nCREATE TABLE [dbo].[dwaggregate]\n( \n    [Dspl] [nvarchar](4000)  NULL,\n    [AvgTemp] [float]  NULL,\n    [MaxHmdt] [float]  NULL,\n    [PartitionId] [float]  NULL\n)\nGO",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"name": "sqlpool1",
+				"type": "SqlPool"
+			}
+		},
+		"type": "SqlQuery"
+	}
+}

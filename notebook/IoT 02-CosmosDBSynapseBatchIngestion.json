@@ -1,0 +1,122 @@
+{
+	"name": "IoT 02-CosmosDBSynapseBatchIngestion",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "sparkpool1",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "56g",
+			"driverCores": 8,
+			"executorMemory": "56g",
+			"executorCores": 8,
+			"numExecutors": 2,
+			"conf": {
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/b9913441-8a8e-4fb1-812a-9fcbe1dd9aba/resourceGroups/Synapse580/providers/Microsoft.Synapse/workspaces/synapse580/bigDataPools/sparkpool1",
+				"name": "sparkpool1",
+				"type": "Spark",
+				"endpoint": "https://synapse580.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/sparkpool1",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net"
+				},
+				"sparkVersion": "2.4",
+				"nodeCount": 10,
+				"cores": 8,
+				"memory": 56
+			}
+		},
+		"cells": [
+			{
+				"cell_type": "markdown",
+				"source": [
+					"# Batch ingestion into Azure Cosmos DB collection\n",
+					"## IoT Device Info\n",
+					"\n",
+					"In this notebook, we'll \n",
+					"\n",
+					"1. Load the IoTDeviceInfo dataset from ADLS Gen2 to a dataframe\n",
+					"2. Write the dataframe to the Azure Cosmos DB collection\n",
+					"\n",
+					">**Did you know?**  [Azure Synapse Link for Azure Cosmos DB](https://review.docs.microsoft.com/en-us/azure/cosmos-db/synapse-link?branch=release-build-cosmosdb) is a hybrid transactional and analytical processing (HTAP) capability that enables you to run near real-time analytics over operational data in Azure Cosmos DB.\n",
+					"&nbsp;\n",
+					"\n",
+					">**Did you know?**  [Azure Cosmos DB analytical store](https://review.docs.microsoft.com/en-us/azure/cosmos-db/analytical-store-introduction?branch=release-build-cosmosdb) is a fully isolated column store for enabling large scale analytics against operational data in your Azure Cosmos DB, without any impact to your transactional workloads.\n",
+					"&nbsp;\n",
+					""
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"### 1. Load the IoTDeviceInfo dataset from ADLS Gen2 to a dataframe\n",
+					">**Did you know?**  The Synapse workspace is attached to an ADLS Gen2 storage account and the files placed on the default storage account can be accessed using the relative path as below.\n",
+					"&nbsp;\n",
+					"\n",
+					""
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"outputs_hidden": false
+					}
+				},
+				"source": [
+					"dfDeviceInfo = (spark\n",
+					"                .read\n",
+					"                .csv(\"/IoTData/IoTDeviceInfo.csv\", header=True, inferSchema='true')\n",
+					"              )\n",
+					"\n",
+					"              "
+				],
+				"attachments": null,
+				"execution_count": 1
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"### 2. Write the dataframe to the Azure Cosmos DB collection\n",
+					">**Did you know?** The \"cosmos.oltp\" is the Spark format that enables connection to the Cosmos DB Transactional store.\n",
+					"\n",
+					">**Did you know?** The ingestion to the Azure Cosmos DB collection is always performed through the Transactional store irrespective of whether the Analytical Store is enabled or not."
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"dfDeviceInfo.write\\\n",
+					"            .format(\"cosmos.oltp\")\\\n",
+					"            .option(\"spark.synapse.linkedService\", \"CosmosDBIoTDemo\")\\\n",
+					"            .option(\"spark.cosmos.container\", \"IoTDeviceInfo\")\\\n",
+					"            .option(\"spark.cosmos.write.upsertEnabled\", \"true\")\\\n",
+					"            .mode('append')\\\n",
+					"            .save()\n",
+					""
+				],
+				"attachments": null,
+				"execution_count": 2
+			}
+		]
+	}
+}

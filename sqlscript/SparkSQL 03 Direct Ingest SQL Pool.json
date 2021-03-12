@@ -1,0 +1,16 @@
+{
+	"name": "SparkSQL 03 Direct Ingest SQL Pool",
+	"properties": {
+		"content": {
+			"query": "--Script generated from Bulk Load Wizard\n\nIF NOT EXISTS (SELECT * FROM sys.objects WHERE NAME = 'OrdersByState' AND TYPE = 'U')\nCREATE TABLE Orders.OrdersByState\n\t(\n\t [StateProvince] nvarchar(30),\n\t [TotalOrders] bigint\n\t)\nWITH\n\t(\n\tDISTRIBUTION = ROUND_ROBIN,\n\t CLUSTERED COLUMNSTORE INDEX\n\t -- HEAP\n\t)\nGO\n\n--Uncomment the 4 lines below to create a stored procedure for data pipeline orchestration​                 \n--CREATE PROC bulk_load_OrdersByState\n--AS\n--BEGIN\nCOPY INTO Orders.OrdersByState\n(StateProvince 1, TotalOrders 2)\nFROM 'https://synapse580.dfs.core.windows.net/curateddata/orders/OrdersByState'\nWITH\n(\n\tFILE_TYPE = 'PARQUET'\n\t,MAXERRORS = 0\n\t,IDENTITY_INSERT = 'OFF'\n)\n--END\nGO\n\nSELECT TOP 100 * FROM Orders.OrdersByState\nGO",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"poolName": "sqlpool1",
+				"databaseName": "sqlpool1"
+			}
+		},
+		"type": "SqlQuery"
+	}
+}

@@ -1,0 +1,549 @@
+{
+	"name": "Taxi 03 tutorial - predict nyc taxi tips",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2
+		},
+		"metadata": {
+			"kernelspec": {
+				"name": "python3-azureml",
+				"display_name": "Python 3.6 - AzureML"
+			},
+			"language_info": {
+				"name": "python"
+			}
+		},
+		"cells": [
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Predict NYC Taxi Tips \r\n",
+					"The notebook ingests, prepares and then trains a model based on an Open Dataset that tracks NYC Yellow Taxi trips and various attributes around them. The goal is to for a given trip, predict whether there will be a tip or not. The model then will be converted to ONNX format and tracked by MLFlow.\r\n",
+					"We will later use the ONNX model for inferencing in Azure Synapse SQL Pool using the new model scoring wizard.\r\n",
+					"## Note:\r\n",
+					"**Please note that for successful conversion to ONNX, this notebook requires using  Scikit-learn version 0.20.3.**\r\n",
+					"Run the first cell to list the packages installed and check your sklearn version. Uncomment the pip install command to install the correct version\r\n",
+					"\r\n",
+					"%pip install scikit-learn==0.20.3\r\n",
+					"\r\n",
+					""
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## Load data\r\n",
+					"Get a sample data of nyc yellow taxi from Azure Open Datasets"
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": true
+				},
+				"source": [
+					"#%pip list\n",
+					"#%pip install scikit-learn==0.20.3"
+				],
+				"attachments": null,
+				"execution_count": 16
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"gather": {
+						"logged": 1599713958224
+					}
+				},
+				"source": [
+					"from azureml.opendatasets import NycTlcYellow\r\n",
+					"from datetime import datetime\r\n",
+					"from dateutil import parser\r\n",
+					"\r\n",
+					"start_date = parser.parse('2018-05-01')\r\n",
+					"end_date = parser.parse('2018-05-07')\r\n",
+					"nyc_tlc = NycTlcYellow(start_date=start_date, end_date=end_date)\r\n",
+					"nyc_tlc_df = nyc_tlc.to_pandas_dataframe()\r\n",
+					"nyc_tlc_df.info()"
+				],
+				"attachments": null,
+				"execution_count": 17
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"gather": {
+						"logged": 1599713959314
+					},
+					"collapsed": true
+				},
+				"source": [
+					"from IPython.display import display\r\n",
+					"\r\n",
+					"sampled_df = nyc_tlc_df.sample(n=10000, random_state=123)\r\n",
+					"display(sampled_df.head(5))"
+				],
+				"attachments": null,
+				"execution_count": 18
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## Prepare and featurize data\r\n",
+					"- There are extra dimensions that are not going to be useful in the model. We just take the dimensions that we need and put them into the featurised dataframe. \r\n",
+					"- There are also a bunch of outliers in the data so we need to filter them out."
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"gather": {
+						"logged": 1599713966451
+					},
+					"collapsed": true
+				},
+				"source": [
+					"import numpy\r\n",
+					"import pandas\r\n",
+					"\r\n",
+					"def get_pickup_time(df):\r\n",
+					"    pickupHour = df['pickupHour'];\r\n",
+					"    if ((pickupHour >= 7) & (pickupHour <= 10)):\r\n",
+					"        return 'AMRush'\r\n",
+					"    elif ((pickupHour >= 11) & (pickupHour <= 15)):\r\n",
+					"        return 'Afternoon'\r\n",
+					"    elif ((pickupHour >= 16) & (pickupHour <= 19)):\r\n",
+					"        return 'PMRush'\r\n",
+					"    else:\r\n",
+					"        return 'Night'\r\n",
+					"\r\n",
+					"featurized_df = pandas.DataFrame()\r\n",
+					"featurized_df['tipped'] = (sampled_df['tipAmount'] > 0).astype('int')\r\n",
+					"featurized_df['fareAmount'] = sampled_df['fareAmount'].astype('float32')\r\n",
+					"featurized_df['paymentType'] = sampled_df['paymentType'].astype('int')\r\n",
+					"featurized_df['passengerCount'] = sampled_df['passengerCount'].astype('int')\r\n",
+					"featurized_df['tripDistance'] = sampled_df['tripDistance'].astype('float32')\r\n",
+					"featurized_df['pickupHour'] = sampled_df['tpepPickupDateTime'].dt.hour.astype('int')\r\n",
+					"featurized_df['tripTimeSecs'] = ((sampled_df['tpepDropoffDateTime'] - sampled_df['tpepPickupDateTime']) / numpy.timedelta64(1, 's')).astype('int')\r\n",
+					"\r\n",
+					"featurized_df['pickupTimeBin'] = featurized_df.apply(get_pickup_time, axis=1)\r\n",
+					"featurized_df = featurized_df.drop(columns='pickupHour')\r\n",
+					"\r\n",
+					"display(featurized_df.head(5))\r\n",
+					""
+				],
+				"attachments": null,
+				"execution_count": 19
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"gather": {
+						"logged": 1599713971477
+					},
+					"collapsed": true
+				},
+				"source": [
+					"filtered_df = featurized_df[(featurized_df.tipped >= 0) & (featurized_df.tipped <= 1)\\\r\n",
+					"    & (featurized_df.fareAmount >= 1) & (featurized_df.fareAmount <= 250)\\\r\n",
+					"    & (featurized_df.paymentType >= 1) & (featurized_df.paymentType <= 2)\\\r\n",
+					"    & (featurized_df.passengerCount > 0) & (featurized_df.passengerCount < 8)\\\r\n",
+					"    & (featurized_df.tripDistance >= 0) & (featurized_df.tripDistance <= 100)\\\r\n",
+					"    & (featurized_df.tripTimeSecs >= 30) & (featurized_df.tripTimeSecs <= 7200)]\r\n",
+					"\r\n",
+					"filtered_df.info()"
+				],
+				"attachments": null,
+				"execution_count": 20
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## Split training and testing data sets\r\n",
+					"- 70% of the data is used to train the model.\r\n",
+					"- 30% of the data is used to test the model."
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"gather": {
+						"logged": 1599713980823
+					},
+					"collapsed": true
+				},
+				"source": [
+					"from sklearn.model_selection import train_test_split\r\n",
+					"\r\n",
+					"train_df, test_df = train_test_split(filtered_df, test_size=0.3, random_state=123)\r\n",
+					"\r\n",
+					"x_train = pandas.DataFrame(train_df.drop(['tipped'], axis = 1))\r\n",
+					"y_train = pandas.DataFrame(train_df.iloc[:,train_df.columns.tolist().index('tipped')])\r\n",
+					"\r\n",
+					"x_test = pandas.DataFrame(test_df.drop(['tipped'], axis = 1))\r\n",
+					"y_test = pandas.DataFrame(test_df.iloc[:,test_df.columns.tolist().index('tipped')])"
+				],
+				"attachments": null,
+				"execution_count": 22
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## Export test data as CSV\r\n",
+					"Export the test data as a CSV file. Later, we will load the CSV file into Synapse SQL pool to test the model."
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"gather": {
+						"logged": 1598830320180
+					},
+					"collapsed": true
+				},
+				"source": [
+					"test_df.to_csv('test_data.csv', index=False)"
+				],
+				"attachments": null,
+				"execution_count": 6
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## Train model\r\n",
+					"Train a bi-classifier to predict whether a taxi trip will be a tipped or not."
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"gather": {
+						"logged": 1599713996871
+					},
+					"collapsed": true
+				},
+				"source": [
+					"from sklearn.compose import ColumnTransformer\r\n",
+					"from sklearn.linear_model import LogisticRegression\r\n",
+					"from sklearn.pipeline import Pipeline\r\n",
+					"from sklearn.impute import SimpleImputer\r\n",
+					"from sklearn.preprocessing import StandardScaler, OneHotEncoder\r\n",
+					"\r\n",
+					"float_features = ['fareAmount', 'tripDistance']\r\n",
+					"float_transformer = Pipeline(steps=[\r\n",
+					"    ('imputer', SimpleImputer(strategy='median')),\r\n",
+					"    ('scaler', StandardScaler())])\r\n",
+					"\r\n",
+					"integer_features = ['paymentType', 'passengerCount', 'tripTimeSecs']\r\n",
+					"integer_transformer = Pipeline(steps=[\r\n",
+					"    ('imputer', SimpleImputer(strategy='median')),\r\n",
+					"    ('scaler', StandardScaler())])\r\n",
+					"\r\n",
+					"categorical_features = ['pickupTimeBin']\r\n",
+					"categorical_transformer = Pipeline(steps=[\r\n",
+					"    ('onehot', OneHotEncoder(handle_unknown='ignore'))])\r\n",
+					"\r\n",
+					"preprocessor = ColumnTransformer(\r\n",
+					"    transformers=[\r\n",
+					"        ('float', float_transformer, float_features),\r\n",
+					"        ('integer', integer_transformer, integer_features),\r\n",
+					"        ('cat', categorical_transformer, categorical_features)\r\n",
+					"    ])\r\n",
+					"\r\n",
+					"clf = Pipeline(steps=[('preprocessor', preprocessor),\r\n",
+					"                      ('classifier', LogisticRegression(solver='lbfgs'))])\r\n",
+					"\r\n",
+					"# Train the model\r\n",
+					"clf.fit(x_train, y_train)"
+				],
+				"attachments": null,
+				"execution_count": 24
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"gather": {
+						"logged": 1599714001990
+					},
+					"collapsed": true
+				},
+				"source": [
+					"# Evalute the model\r\n",
+					"score = clf.score(x_test, y_test)\r\n",
+					"print(score)"
+				],
+				"attachments": null,
+				"execution_count": 25
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## Convert the model to ONNX format\r\n",
+					"Currently, T-SQL scoring only supports ONNX model format (https://onnx.ai/)."
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"gather": {
+						"logged": 1598830324781
+					},
+					"collapsed": true
+				},
+				"source": [
+					"from skl2onnx import convert_sklearn\r\n",
+					"from skl2onnx.common.data_types import FloatTensorType, Int64TensorType, DoubleTensorType, StringTensorType\r\n",
+					"\r\n",
+					"def convert_dataframe_schema(df, drop=None):\r\n",
+					"    inputs = []\r\n",
+					"    for k, v in zip(df.columns, df.dtypes):\r\n",
+					"        if drop is not None and k in drop:\r\n",
+					"            continue\r\n",
+					"        if v == 'int64':\r\n",
+					"            t = Int64TensorType([1, 1])\r\n",
+					"        elif v == 'float32':\r\n",
+					"            t = FloatTensorType([1, 1])\r\n",
+					"        elif v == 'float64':\r\n",
+					"            t = DoubleTensorType([1, 1])\r\n",
+					"        else:\r\n",
+					"            t = StringTensorType([1, 1])\r\n",
+					"        inputs.append((k, t))\r\n",
+					"    return inputs\r\n",
+					"\r\n",
+					"model_inputs = convert_dataframe_schema(x_train)\r\n",
+					"onnx_model = convert_sklearn(clf, \"nyc_taxi_tip_predict\", model_inputs)"
+				],
+				"attachments": null,
+				"execution_count": 9
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## Register the model with MLFlow"
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"gather": {
+						"logged": 1598830390704
+					},
+					"collapsed": true
+				},
+				"source": [
+					"from azureml.core import Workspace\r\n",
+					"\r\n",
+					"ws = Workspace.from_config()\r\n",
+					"print(ws.name, ws.resource_group, ws.location, ws.subscription_id, sep='\\n')"
+				],
+				"attachments": null,
+				"execution_count": 10
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"gather": {
+						"logged": 1598830404736
+					},
+					"collapsed": true
+				},
+				"source": [
+					"import mlflow\r\n",
+					"import mlflow.onnx\r\n",
+					"\r\n",
+					"from mlflow.models.signature import infer_signature\r\n",
+					"\r\n",
+					"experiment_name = 'nyc_taxi_tip_predict_exp'\r\n",
+					"artifact_path = 'nyc_taxi_tip_predict_artifact'\r\n",
+					"\r\n",
+					"mlflow.set_tracking_uri(ws.get_mlflow_tracking_uri())\r\n",
+					"mlflow.set_experiment(experiment_name)\r\n",
+					"\r\n",
+					"with mlflow.start_run() as run:\r\n",
+					"    # Infer signature\r\n",
+					"    input_sample = x_train.head(1)\r\n",
+					"    output_sample = pandas.DataFrame(columns=['output_label'], data=[1])\r\n",
+					"    signature = infer_signature(input_sample, output_sample)\r\n",
+					"\r\n",
+					"    # Save the model to the outputs directory for capture\r\n",
+					"    mlflow.onnx.log_model(onnx_model, artifact_path, signature=signature, input_example=input_sample)\r\n",
+					"\r\n",
+					"    # Register the model to AML model registry\r\n",
+					"    mlflow.register_model('runs:/' + run.info.run_id + '/' + artifact_path, 'nyc_taxi_tip_predict')\r\n",
+					""
+				],
+				"attachments": null,
+				"execution_count": 11
+			}
+		]
+	}
+}

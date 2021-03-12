@@ -1,0 +1,102 @@
+{
+	"name": "Taxi 02 Creating an unmanaged Spark Table",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2
+		},
+		"metadata": {
+			"language_info": {
+				"name": "python"
+			}
+		},
+		"cells": [
+			{
+				"cell_type": "markdown",
+				"source": [
+					"# Creating an unmanaged (external) Spark table\n",
+					"This notebook describes how to create an unmanaged (also known as external) table from Spark. \n",
+					"The table is created in /datalake/cities which may exist already (so you can attach to existing data) it can be created when you insert data."
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"spark.sql(\"CREATE TABLE cities (name STRING, population INT) USING PARQUET  LOCATION \\'/datalake/cities\\' OPTIONS (\\'compression\\'=\\'snappy\\')\")"
+				],
+				"execution_count": 4
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"Insert a few rows into the table using a list of values.\n",
+					""
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"spark.sql(\"INSERT INTO cities VALUES (\\'Seattle\\', 730400), (\\'San Francisco\\', 881549), (\\'Beijing\\', 21540000), (\\'Bangalore\\', 10540000)\")"
+				],
+				"execution_count": 5
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"* Retrieve values back. Click on 'Chart' below to review the visualization.\n",
+					""
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"diagram": {
+						"activateDiagramType": 1,
+						"chartConfig": {
+							"category": "bar",
+							"keys": [
+								"name"
+							],
+							"values": [
+								"population"
+							],
+							"yLabel": "population",
+							"xLabel": "name",
+							"aggregation": "SUM",
+							"aggByBackend": false
+						},
+						"aggData": "\"\\\"{\\\\\\\"population\\\\\\\":{\\\\\\\"Bangalore\\\\\\\":21080000,\\\\\\\"Beijing\\\\\\\":43080000,\\\\\\\"San Francisco\\\\\\\":1763098,\\\\\\\"Seattle\\\\\\\":1460800}}\\\"\"",
+						"isSummary": false,
+						"previewData": {
+							"filter": null
+						},
+						"isSql": false
+					}
+				},
+				"source": [
+					"display(spark.sql(\"SELECT * FROM cities ORDER BY name\"))"
+				],
+				"execution_count": 6
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"Drop the table. Please note the data will remain in the data lake.\n",
+					""
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"spark.sql(\"DROP TABLE cities\")"
+				],
+				"execution_count": 7
+			}
+		]
+	}
+}

@@ -1,0 +1,187 @@
+{
+	"name": "Azure_DW_Automation",
+	"properties": {
+		"activities": [
+			{
+				"name": "AzureDW_Scale_up",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "SQLDW_Resume",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "@concat('https://management.azure.com/subscriptions/',pipeline().parameters.subscriptionId,'/resourceGroups/',pipeline().parameters.ResourceGroupName,'/providers/Microsoft.Sql/servers/',pipeline().parameters.ServerName,'/databases/',pipeline().parameters.DBname,'?api-version=2014-04-01-preview')",
+						"type": "Expression"
+					},
+					"connectVia": {
+						"referenceName": "AutoResolveIntegrationRuntime",
+						"type": "IntegrationRuntimeReference"
+					},
+					"method": "PATCH",
+					"body": {
+						"value": "@pipeline().parameters.DWU_Scaleup",
+						"type": "Expression"
+					},
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://management.azure.com/"
+					}
+				}
+			},
+			{
+				"name": "SQLDW_Resume",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "@concat('https://management.azure.com/subscriptions/',pipeline().parameters.subscriptionId,'/resourceGroups/',pipeline().parameters.ResourceGroupName,'/providers/Microsoft.Sql/servers/',pipeline().parameters.ServerName,'/databases/',pipeline().parameters.DBname,'/resume?api-version=2014-04-01-preview')",
+						"type": "Expression"
+					},
+					"connectVia": {
+						"referenceName": "AutoResolveIntegrationRuntime",
+						"type": "IntegrationRuntimeReference"
+					},
+					"method": "POST",
+					"body": " ",
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://management.azure.com/"
+					}
+				}
+			},
+			{
+				"name": "SQLDW_Pause",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "AzureDW_Scale_down",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "@concat('https://management.azure.com/subscriptions/',pipeline().parameters.subscriptionId,'/resourceGroups/',pipeline().parameters.ResourceGroupName,'/providers/Microsoft.Sql/servers/',pipeline().parameters.ServerName,'/databases/',pipeline().parameters.DBname,'/pause?api-version=2014-04-01-preview')",
+						"type": "Expression"
+					},
+					"connectVia": {
+						"referenceName": "AutoResolveIntegrationRuntime",
+						"type": "IntegrationRuntimeReference"
+					},
+					"method": "POST",
+					"body": " ",
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://management.azure.com/"
+					}
+				}
+			},
+			{
+				"name": "AzureDW_Scale_down",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "AzureDW_Scale_up",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "@concat('https://management.azure.com/subscriptions/',pipeline().parameters.subscriptionId,'/resourceGroups/',pipeline().parameters.ResourceGroupName,'/providers/Microsoft.Sql/servers/',pipeline().parameters.ServerName,'/databases/',pipeline().parameters.DBname,'?api-version=2014-04-01-preview')",
+						"type": "Expression"
+					},
+					"connectVia": {
+						"referenceName": "AutoResolveIntegrationRuntime",
+						"type": "IntegrationRuntimeReference"
+					},
+					"method": "PATCH",
+					"body": {
+						"value": "@pipeline().parameters.DWU_down",
+						"type": "Expression"
+					},
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://management.azure.com/"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"subscriptionId": {
+				"type": "string",
+				"defaultValue": "b9913441-8a8e-4fb1-812a-9fcbe1dd9aba"
+			},
+			"ResourceGroupName": {
+				"type": "string",
+				"defaultValue": "Synapse580"
+			},
+			"ServerName": {
+				"type": "string",
+				"defaultValue": "synapse580"
+			},
+			"DBname": {
+				"type": "string",
+				"defaultValue": "sqlpool1"
+			},
+			"DWU_Scaleup": {
+				"type": "string",
+				"defaultValue": {
+					"properties": {
+						"requestedServiceObjectiveName": "DW200c"
+					}
+				}
+			},
+			"DWU_down": {
+				"type": "string",
+				"defaultValue": {
+					"properties": {
+						"requestedServiceObjectiveName": "DW100c"
+					}
+				}
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2020-12-21T21:26:38Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

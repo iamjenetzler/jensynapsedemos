@@ -1,0 +1,16 @@
+{
+	"name": "Predict 05 In-Engine ML Scoring",
+	"properties": {
+		"content": {
+			"query": "\n-- PREDICTIVE MODELS TABLE\nSELECT * FROM Predict.Models;\n\n-- TRIPS DATA TABLE\nselect * from Predict.Trips\n\n-- quick predict\nSELECT TOP 10\n       [vendorID],\n       [passengerCount],\n       [tripDistance],\n       [month_num],\n       [day_of_month],\n       [day_of_week],\n       [day_of_hour],\n       [totalAmount]\nFROM PREDICT (model = (SELECT Model FROM Predict.Models WHERE Id = 60), Data = Predict.Trips) WITH (totalAmount float)\n\n\n-- NEXT PREDICTIONS INTO A MORE COMPLEX QUERY\n--DECLARE @model varbinary(max) = (SELECT Model FROM Models WHERE Id = 60);\nSELECT\n\tPassengerCount,\n\tTripCount,\n\tAvgTripAmount,\n\tRANK() OVER (ORDER BY AvgTripAmount DESC) AS RankTripAmount\nFROM (\n\tSELECT \n\t\t   [passengerCount] as PassengerCount,\n\t\t   COUNT(*) as TripCount,\n\t\t   AVG([totalAmount]) as AvgTripAmount\n\tFROM PREDICT (model = (SELECT Model FROM Predict.Models WHERE Id = 60), Data = Predict.Trips) WITH (totalAmount float)\n\tGROUP BY\n\t\t[passengerCount]) SubQ\nORDER BY\n\tPassengerCount\n\n\n",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"name": "sqlpool1",
+				"type": "SqlPool"
+			}
+		},
+		"type": "SqlQuery"
+	}
+}

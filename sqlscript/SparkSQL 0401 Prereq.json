@@ -1,0 +1,16 @@
+{
+	"name": "SparkSQL 0401 Prereq",
+	"properties": {
+		"content": {
+			"query": "/* SECURITY */\n--To create users, connect to the SQL pool database, and follow these examples:\n--SQL User \n--CREATE USER Mary FROM LOGIN Mary;\n\n--Azure Active Directory User \n--CREATE USER [jeetzler@microsoft.com] FROM EXTERNAL PROVIDER\nCREATE USER [synapse580msi] FROM EXTERNAL PROVIDER\n\n--To assign a role:\n--SQL User \n--EXEC sp_addrolemember 'db_exporter', 'Mary';\n\n--Azure Active Directory User \n--EXEC sp_addrolemember 'db_exporter', [jeetzler@microsoft.com] \nEXEC sp_addrolemember 'db_exporter', [synapse580msi]\n\n\n/* RESET */\n--The table must not exist in the dedicated SQL pool or an error will be returned stating that \"There is already an object named...\"\nIF object_id ('Orders.OrdersByState','U') IS NOT NULL\nDROP TABLE Orders.OrdersByState\n\nIF NOT EXISTS ( SELECT  *\n                FROM    sys.schemas\n                WHERE   name = N'Orders' )\n    EXEC('CREATE SCHEMA [Orders]');\nGO",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"poolName": "sqlpool1",
+				"databaseName": "sqlpool1"
+			}
+		},
+		"type": "SqlQuery"
+	}
+}

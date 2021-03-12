@@ -1,0 +1,35 @@
+{
+	"name": "CodeFreeLoadDeltaTable",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "hrdatacsv_adls",
+						"type": "DatasetReference"
+					},
+					"name": "hrdatacsv"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "synapse580-WorkspaceDefaultStorage",
+						"type": "LinkedServiceReference"
+					},
+					"name": "hrdeltalake"
+				}
+			],
+			"transformations": [
+				{
+					"name": "DerivedColumns"
+				},
+				{
+					"name": "SelectColumns"
+				}
+			],
+			"script": "source(output(\n\t\tEmployee_Name as string,\n\t\tEmpID as string,\n\t\tMarriedID as string,\n\t\tDeptID as string,\n\t\tPayRate as string,\n\t\tPositionID as string,\n\t\tPosition as string,\n\t\tState as string,\n\t\tDOB as string,\n\t\tSex as string,\n\t\tDateofHire as string,\n\t\tDepartment as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: true,\n\tignoreNoFilesFound: false,\n\tinferDriftedColumnTypes: true,\n\tdateFormats: ['yyyy-MM-dd'],\n\ttimestampFormats: ['yyyy-MM-dd'],\n\tpreferredIntegralType: 'integer',\n\tpreferredFractionalType: 'double',\n\twildcardPaths:['HR/*.csv']) ~> hrdatacsv\nhrdatacsv derive(Age = abs(year(currentDate())-year(toDate(byName('DOB'),'MM/dd/yyyy'))),\n\t\tHireDate = toDate(byName('DateofHire'), 'MM/dd/yyyy')) ~> DerivedColumns\nDerivedColumns select(mapColumn(\n\t\tEmployee_Name,\n\t\tEmpID,\n\t\tMarriedID,\n\t\tDeptID,\n\t\tPayRate,\n\t\tPositionID,\n\t\tPosition,\n\t\tState,\n\t\tDOB,\n\t\tSex,\n\t\tDateofHire,\n\t\tDepartment,\n\t\tAge,\n\t\tHireDate\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SelectColumns\nSelectColumns sink(allowSchemaDrift: true,\n\tvalidateSchema: true,\n\tinput(\n\t\tEmployee_Name as string,\n\t\tEmpID as integer,\n\t\tMarriedID as boolean,\n\t\tDeptID as string,\n\t\tPayRate as string,\n\t\tPositionID as string,\n\t\tPosition as string,\n\t\tState as string,\n\t\tDOB as string,\n\t\tSex as string,\n\t\tDateofHire as date,\n\t\tDepartment as string,\n\t\tAge as integer\n\t),\n\tformat: 'delta',\n\tfileSystem: 'rawdata',\n\tfolderPath: 'HR/delta',\n\ttruncate:true,\n\tmergeSchema: true,\n\tautoCompact: false,\n\toptimizedWrite: false,\n\tvacuum: 0,\n\tdeletable:false,\n\tinsertable:true,\n\tupdateable:false,\n\tupsertable:false,\n\tmapColumn(\n\t\tEmployee_Name,\n\t\tEmpID,\n\t\tMarriedID,\n\t\tDeptID,\n\t\tPayRate,\n\t\tPositionID,\n\t\tPosition,\n\t\tState,\n\t\tDOB,\n\t\tSex,\n\t\tDateofHire = HireDate,\n\t\tDepartment,\n\t\tAge\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> hrdeltalake"
+		}
+	}
+}
