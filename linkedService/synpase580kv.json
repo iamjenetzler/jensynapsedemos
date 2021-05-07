@@ -1,0 +1,10 @@
+{
+	"name": "synpase580kv",
+	"properties": {
+		"annotations": [],
+		"type": "AzureKeyVault",
+		"typeProperties": {
+			"baseUrl": "https://synapse580kv.vault.azure.net/"
+		}
+	}
+}
