@@ -1,0 +1,17 @@
+{
+	"name": "Serverless 02 Query",
+	"properties": {
+		"content": {
+			"query": "SELECT TOP 10 *\nFROM OPENROWSET\n  (\n      BULK 'rawdata/HR/*.csv',\n      DATA_SOURCE = 'SqlOnDemandDemo',\n      FORMAT = 'CSV', \n      PARSER_VERSION = '2.0'\n  )\n  AS r\n ",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"poolName": "Built-in",
+				"databaseName": "Demo"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}
