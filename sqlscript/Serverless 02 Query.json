@@ -2,7 +2,7 @@
 	"name": "Serverless 02 Query",
 	"properties": {
 		"content": {
-			"query": "SELECT TOP 10 *\nFROM OPENROWSET\n  (\n      BULK 'rawdata/HR/*.csv',\n      DATA_SOURCE = 'SqlOnDemandDemo',\n      FORMAT = 'CSV', \n      PARSER_VERSION = '2.0',\n      HEADER_ROW = TRUE\n  )\n  AS r\n ",
+			"query": "SELECT TOP 10 *\nFROM OPENROWSET\n  (\n      BULK 'rawdata/HR/*.csv',\n      DATA_SOURCE = 'SqlOnDemandDemo',\n      FORMAT = 'CSV', \n      PARSER_VERSION = '2.0',\n      HEADER_ROW = TRUE\n  )\n  AS r\n\n  CREATE VIEW HRData\n  AS\n  SELECT *\n  FROM OPENROWSET\n  (\n      BULK 'rawdata/HR/*.csv',\n      DATA_SOURCE = 'SqlOnDemandDemo',\n      FORMAT = 'CSV', \n      PARSER_VERSION = '2.0',\n      HEADER_ROW = TRUE\n  )\n  AS r\n\nSELECT Position\n -- , State\n  , AVG(Age) as AverageAge\n  , Sum(Female) as Female\n  , Sum(Male) as Male\n  , AVG(PayRate) as AvgPayRate\n  , SUM(Married) as Married\n  , SUM(Single) as Single\nFROM (\n    Select Position\n    , State\n    , datediff([year],[dob],getdate()) as Age\n    , CASE When Sex = 'F' then 1 END as Female\n    , CASE WHEN Sex = 'M' then 1 END as Male \n    , PayRate\n    , CASE WHEN MarriedID = 1 Then 1 END as Married\n    , CASE WHEN MarriedID = 0 Then 1 END as Single\n    FROM HRData) dataset1   \nGROUP BY Position\n--, State \n",
 			"metadata": {
 				"language": "sql"
 			},
