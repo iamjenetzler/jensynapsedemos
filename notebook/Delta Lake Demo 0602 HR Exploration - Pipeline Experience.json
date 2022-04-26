@@ -12,9 +12,17 @@
 			"driverCores": 8,
 			"executorMemory": "56g",
 			"executorCores": 8,
-			"numExecutors": 2
+			"numExecutors": 2,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "0b3d3886-8259-4a88-ab98-a9b167150552"
+			}
 		},
 		"metadata": {
+			"saveOutput": true,
+			"enableDebugMode": false,
 			"kernelspec": {
 				"name": "synapse_pyspark",
 				"display_name": "Synapse PySpark"
@@ -25,17 +33,12 @@
 			"a365ComputeOptions": {
 				"id": "/subscriptions/b9913441-8a8e-4fb1-812a-9fcbe1dd9aba/resourceGroups/Synapse580/providers/Microsoft.Synapse/workspaces/synapse580/bigDataPools/sparkpool3",
 				"name": "sparkpool3",
-				"type": "Spark",
-				"endpoint": "https://synapse580.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/sparkpool3",
 				"auth": {
 					"type": "AAD",
 					"authResource": "https://dev.azuresynapse.net"
-				},
-				"sparkVersion": "2.4",
-				"nodeCount": 3,
-				"cores": 8,
-				"memory": 56
-			}
+				}
+			},
+			"sessionKeepAliveTimeout": 30
 		},
 		"cells": [
 			{
@@ -43,13 +46,12 @@
 				"source": [
 					"# Using Linux foundation Delta Lake in Synapse Spark\n",
 					"In this notebook, how to read the delta table, how to write to delta table and timetravel is demonstrated"
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
 				"source": [
-					"# Set the strorage path info\n",
+					"# Set the strorage path  info\n",
 					"account_name = 'synapse580' # fill in your primary storage account name\n",
 					"container_name = 'rawdata' # fill in your container name\n",
 					"relative_delta_path='HR/delta' # fill in your relative delta lake folder path\n",
@@ -61,7 +63,6 @@
 					"deltatablepath = adls_path + relative_delta_path + '/'\n",
 					"print('Delta Lake path: ' + deltatablepath)"
 				],
-				"attachments": null,
 				"execution_count": 6
 			},
 			{
@@ -70,8 +71,7 @@
 					"### Read data in delta format\n",
 					"\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -80,7 +80,6 @@
 					"df_hr = spark.read.format(\"delta\").load(deltatablepath)\n",
 					"df_hr.show(10)"
 				],
-				"attachments": null,
 				"execution_count": 3
 			},
 			{
@@ -89,8 +88,7 @@
 					"### Add New Column YearsOfService\n",
 					"\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -101,7 +99,6 @@
 					"df_hr_service = df_hr.withColumn('YearsOfService',2020-f.year(f.to_timestamp('DateofHire', 'MM/dd/yyyy')))\n",
 					"df_hr_service.show(5)"
 				],
-				"attachments": null,
 				"execution_count": 4
 			},
 			{
@@ -109,8 +106,7 @@
 				"source": [
 					"### Overwrite the entire delta table\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -118,7 +114,6 @@
 					"# Overwrite the delta table to include the new column \r\n",
 					"df_hr_service.write.mode(\"overwrite\").format(\"delta\").option(\"mergeSchema\",\"true\").save(deltatablepath)"
 				],
-				"attachments": null,
 				"execution_count": 6
 			},
 			{
@@ -126,8 +121,7 @@
 				"source": [
 					"### Validate delta table is updated with new column\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -136,7 +130,6 @@
 					"hrdataframe = spark.read.format(\"delta\").load(deltatablepath)\n",
 					"hrdataframe.show(10)"
 				],
-				"attachments": null,
 				"execution_count": 7
 			},
 			{
@@ -145,8 +138,7 @@
 					"### Check version with timetravel\n",
 					"\n",
 					"we can see here yearsOfService column is not present in original delta table"
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -160,7 +152,6 @@
 					"                    )\n",
 					"hrdataoriginal.show(10)"
 				],
-				"attachments": null,
 				"execution_count": 8
 			},
 			{
@@ -174,7 +165,6 @@
 					"\r\n",
 					"deltaTable.history().show()"
 				],
-				"attachments": null,
 				"execution_count": 12
 			}
 		]
