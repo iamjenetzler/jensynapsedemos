@@ -1,0 +1,66 @@
+{
+	"name": "prepare_anomaly_detector_data",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "61fbf113-9254-4a37-b449-7d0008b000aa"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "python"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "code",
+				"source": [
+					"from pyspark.sql.functions import lit\n",
+					"\n",
+					"df = spark.createDataFrame([\n",
+					"    (\"1972-01-01T00:00:00Z\", 826.0),\n",
+					"    (\"1972-02-01T00:00:00Z\", 799.0),\n",
+					"    (\"1972-03-01T00:00:00Z\", 890.0),\n",
+					"    (\"1972-04-01T00:00:00Z\", 900.0),\n",
+					"    (\"1972-05-01T00:00:00Z\", 766.0),\n",
+					"    (\"1972-06-01T00:00:00Z\", 805.0),\n",
+					"    (\"1972-07-01T00:00:00Z\", 821.0),\n",
+					"    (\"1972-08-01T00:00:00Z\", 20000.0),\n",
+					"    (\"1972-09-01T00:00:00Z\", 883.0),\n",
+					"    (\"1972-10-01T00:00:00Z\", 898.0),\n",
+					"    (\"1972-11-01T00:00:00Z\", 957.0),\n",
+					"    (\"1972-12-01T00:00:00Z\", 924.0),\n",
+					"    (\"1973-01-01T00:00:00Z\", 881.0),\n",
+					"    (\"1973-02-01T00:00:00Z\", 837.0),\n",
+					"    (\"1973-03-01T00:00:00Z\", 9000.0)\n",
+					"], [\"timestamp\", \"value\"]).withColumn(\"group\", lit(\"series1\"))"
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"df.write.mode(\"overwrite\").saveAsTable(\"anomaly_detector_testing_data\")"
+				],
+				"execution_count": null
+			}
+		]
+	}
+}
