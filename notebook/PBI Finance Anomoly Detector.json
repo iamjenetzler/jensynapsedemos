@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "23ed504d-3f51-42c0-91aa-24c286dc3278"
+				"spark.autotune.trackingId": "beb158ca-10c6-444f-a55c-edade54c864a"
 			}
 		},
 		"metadata": {
@@ -67,12 +67,11 @@
 				"source": [
 					"%%pyspark\r\n",
 					"df = spark.read.load('abfss://workspace@synapse580.dfs.core.windows.net/Finance/WA_Fn-UseC_-Accounts-Receivable (1).csv', format='csv'\r\n",
-					"## If header exists uncomment line below\r\n",
-					"##, header=True\r\n",
+					", header=True\r\n",
 					")\r\n",
 					"df.write.mode(\"overwrite\").saveAsTable(\"default.anomaly_detector_testing_data\")"
 				],
-				"execution_count": 3
+				"execution_count": 4
 			}
 		]
 	}
