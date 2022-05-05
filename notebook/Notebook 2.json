@@ -1,0 +1,82 @@
+{
+	"name": "Notebook 2",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "spark1",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "56g",
+			"driverCores": 8,
+			"executorMemory": "56g",
+			"executorCores": 8,
+			"numExecutors": 2,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "aa16b6e5-9f30-460f-b265-c77926909370"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/b9913441-8a8e-4fb1-812a-9fcbe1dd9aba/resourceGroups/Synapse580/providers/Microsoft.Synapse/workspaces/synapse580/bigDataPools/spark1",
+				"name": "spark1",
+				"type": "Spark",
+				"endpoint": "https://synapse580.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/spark1",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net"
+				},
+				"sparkVersion": "2.4",
+				"nodeCount": 10,
+				"cores": 8,
+				"memory": 56,
+				"automaticScaleJobs": false
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "code",
+				"source": [
+					"from mmlspark.cognitive import *\n",
+					"from notebookutils import mssparkutils\n",
+					"from pyspark.sql.functions import col\n",
+					"from pyspark.sql.types import DoubleType\n",
+					"\n",
+					"\n",
+					"# Load the data into a Spark DataFrame\n",
+					"df = spark.sql(\"SELECT * FROM default.anomaly_detector_testing_data\").withColumn(\"DueDate\", col(\"DueDate\").cast(DoubleType()))\n",
+					"\n",
+					"\n",
+					"anomalyDetector = (SimpleDetectAnomalies()\n",
+					"    .setLinkedService(\"pbifinance_anomolydetector\")\n",
+					"    .setOutputCol(\"output\")\n",
+					"    .setErrorCol(\"error\")\n",
+					"    .setGranularity(\"monthly\")\n",
+					"    .setTimestampCol(\"DueDate\")\n",
+					"    .setValueCol(\"DueDate\")\n",
+					"    .setGroupbyCol(\"customerID\"))\n",
+					"\n",
+					"results = anomalyDetector.transform(df)\n",
+					"\n",
+					"# Show the results\n",
+					"display(results.select(\"DueDate\", \"DueDate\", \"customerID\", \"output.*\", \"error\").limit(10))"
+				],
+				"execution_count": 7
+			}
+		]
+	}
+}
