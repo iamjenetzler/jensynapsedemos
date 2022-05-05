@@ -1,0 +1,16 @@
+{
+	"name": "RT Connect to Accounts",
+	"properties": {
+		"content": {
+			"query": "SELECT * FROM sys.tables\n\n-- Create databases scoped credential that use Managed Identity or SAS token. User needs to create only database-scoped credentials that should be used to access data source:\n--> Optional - a MASTER KEY is not required if a DATABASE SCOPED CREDENTIAL is not required because the blob is configured for public (anonymous) access!\nCREATE MASTER KEY ENCRYPTION BY PASSWORD = 'j1Rro7iSc4Ep_ie4_vn5-6Bjl~lrLK_T_v';\nGO\n\n--Straight out of the examples, works on On Demand and SQL Pool:\nCREATE DATABASE SCOPED CREDENTIAL [sqlondemand]\nWITH IDENTITY='SHARED ACCESS SIGNATURE',  \nSECRET = 'sv=2018-03-28&ss=bf&srt=sco&sp=rl&st=2019-10-14T12%3A10%3A25Z&se=2061-12-31T12%3A10%3A00Z&sig=KlSU2ullCscyTS0An0nozEpo4tO5JAgGBvw%2FJX2lguw%3D'\nGO\n\n-- Create a database scoped credential.\nCREATE DATABASE SCOPED CREDENTIAL [ADL_User5]\nWITH\n    IDENTITY = '28940566-7a33-4918-bbd2-f640149b3a5f@https://login.microsoftonline.com/72f988bf-86f1-41af-91ab-2d7cd011db47/oauth2/token',  --Incorrect syntax near 'IDENTITY'.\n    --IDENTITY = '28940566-7a33-4918-bbd2-f640149b3a5f@https://login.microsoftonline.com/72f988bf-86f1-41af-91ab-2d7cd011db47/oauth2/token',  --Incorrect syntax near 'IDENTITY'.\n    --IDENTITY = '28940566-7a33-4918-bbd2-f640149b3a5f@\\https://login.microsoftonline.com/72f988bf-86f1-41af-91ab-2d7cd011db47/oauth2/token',  --Incorrect syntax near 'IDENTITY'.\n    --IDENTITY = 'West EOU Analytics@login.microsoftonline.com/72f988bf-86f1-41af-91ab-2d7cd011db47/oauth2/token',  --Incorrect syntax near 'IDENTITY'.\n    --IDENTITY = 'West EOU Analytics',  --Incorrect syntax near 'IDENTITY'.\n    --IDENTITY = '28940566-7a33-4918-bbd2-f640149b3a5', --Incorrect syntax near 'IDENTITY'.\n    SECRET = 'j1Rro7iSc4Ep_ie4_vn5-6Bjl~lrLK_T_v'\n\n-- SQL On Demand:  Incorrect syntax near 'HADOOP'.\nCREATE EXTERNAL DATA SOURCE Accounts5\nWITH ( TYPE = HADOOP,\n          LOCATION = 'https://cseoedlprodadlsg2wus201.dfs.core.windows.net/cseo/standardized/transactional/calcfy/calcfy_vw_fy_managedtopparentaccounts/v1/standard'\n          , CREDENTIAL= ADL_User5\n);\n\nCREATE EXTERNAL FILE FORMAT NativeParquet\nWITH (  \n    FORMAT_TYPE = PARQUET\n);\n\n-- On SQL On Demand:  Operation CREATE EXTERNAL TABLE is not allowed for a replicated database.\nCREATE EXTERNAL TABLE Accounts_SQL\n(\n    [TPID] VARCHAR (5) COLLATE Latin1_General_BIN2\n)\nWITH (\n    LOCATION = '*',\n    DATA_SOURCE = Accounts5,\n    FILE_FORMAT = NativeParquet\n);\n\n\nSELECT TOP 5 * FROM Accounts5\n\n--OPENROWSET does not work in Provisioned Pools:\nSELECT TOP 10 * FROM OPENROWSET (BULK '/*.parquet', FORMAT = 'PARQUET', DATA_SOURCE = 'Accounts5') as a;\nGO",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"name": "master",
+				"type": "SqlOnDemand"
+			}
+		},
+		"type": "SqlQuery"
+	}
+}

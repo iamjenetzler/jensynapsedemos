@@ -37,7 +37,8 @@
 				"nodeCount": 10,
 				"cores": 8,
 				"memory": 56
-			}
+			},
+			"sessionKeepAliveTimeout": 30
 		},
 		"cells": [
 			{
