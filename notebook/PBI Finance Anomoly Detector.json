@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "a0075217-b2af-4043-9639-563af9dc7aa8"
+				"spark.autotune.trackingId": "5384cacd-4a35-42c0-be04-99920887597a"
 			}
 		},
 		"metadata": {
@@ -71,7 +71,7 @@
 					")\r\n",
 					"df.write.mode(\"overwrite\").saveAsTable(\"default.anomaly_detector_testing_data\")"
 				],
-				"execution_count": 4
+				"execution_count": 1
 			},
 			{
 				"cell_type": "code",
@@ -84,7 +84,8 @@
 						"transient": {
 							"deleting": false
 						}
-					}
+					},
+					"collapsed": false
 				},
 				"source": [
 					"from mmlspark.cognitive import *\r\n",
@@ -117,9 +118,9 @@
 					"results = anomalyDetector.transform(df)\r\n",
 					"\r\n",
 					"# Show the results\r\n",
-					"display(results.select(\"customerID\", \"DueDate\", \"DaysLate\", \"output.*\", \"error\").limit(10))"
+					"display(results.select(\"customerID\", \"DueDate\", \"DaysLate\", \"output.*\", \"error\").limit(100))"
 				],
-				"execution_count": null
+				"execution_count": 6
 			}
 		]
 	}
