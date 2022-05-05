@@ -16,7 +16,7 @@
 					"referenceName": "synpase580kv",
 					"type": "LinkedServiceReference"
 				},
-				"secretName": "synapse580key"
+				"secretName": "pbifinanceanomolydetectorkey"
 			}
 		},
 		"connectVia": {
