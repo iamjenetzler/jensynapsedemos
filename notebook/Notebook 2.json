@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "a97ee808-f0e8-4656-91e8-fd706ae25545"
+				"spark.autotune.trackingId": "10ed440c-653a-4328-950c-5bbae84f6128"
 			}
 		},
 		"metadata": {
@@ -50,16 +50,25 @@
 		"cells": [
 			{
 				"cell_type": "code",
+				"metadata": {
+					"collapsed": false
+				},
 				"source": [
 					"from mmlspark.cognitive import *\n",
 					"from notebookutils import mssparkutils\n",
 					"from pyspark.sql.functions import col\n",
-					"from pyspark.sql.types import DoubleType\n",
+					"from pyspark.sql.types import DoubleType, TimestampType\n",
+					"from pyspark.sql.functions import unix_timestamp\n",
 					"\n",
 					"\n",
 					"# Load the data into a Spark DataFrame\n",
-					"df = spark.sql(\"SELECT * FROM default.anomaly_detector_testing_data\").withColumn(\"DueDate\", col(\"DueDate\").cast(DoubleType()))\n",
+					"df = spark.sql(\"SELECT * FROM default.anomaly_detector_testing_data\") \\\n",
+					"    .withColumn(\"DaysLate\", col(\"DaysLate\").cast(DoubleType())) \\\n",
+					"    .withColumn(\"DueDateDT\", unix_timestamp(col(\"DueDate\"),'M/dd/yyyy').cast(TimestampType())) \\\n",
+					"    .sort(col(\"DueDateDT\"), ascending=True)\n",
+					" \n",
 					"\n",
+					"df.show(10)\n",
 					"\n",
 					"anomalyDetector = (SimpleDetectAnomalies()\n",
 					"    .setLinkedService(\"pbifinance_anomolydetector\")\n",
@@ -67,15 +76,15 @@
 					"    .setErrorCol(\"error\")\n",
 					"    .setGranularity(\"monthly\")\n",
 					"    .setTimestampCol(\"DueDate\")\n",
-					"    .setValueCol(\"DueDate\")\n",
-					"    .setGroupbyCol(\"customerID\"))\n",
+					"    .setValueCol(\"DaysLate\")\n",
+					"    .setGroupbyCol(\"customerID\")    )\n",
 					"\n",
 					"results = anomalyDetector.transform(df)\n",
 					"\n",
 					"# Show the results\n",
-					"display(results.select(\"DueDate\", \"DueDate\", \"customerID\", \"output.*\", \"error\").limit(10))"
+					"display(results.select(\"DueDate\", \"DaysLate\", \"customerID\", \"output.*\", \"error\").limit(10))"
 				],
-				"execution_count": 13
+				"execution_count": 45
 			}
 		]
 	}
