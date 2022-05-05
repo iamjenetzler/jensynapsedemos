@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "beb158ca-10c6-444f-a55c-edade54c864a"
+				"spark.autotune.trackingId": "a0075217-b2af-4043-9639-563af9dc7aa8"
 			}
 		},
 		"metadata": {
@@ -72,6 +72,54 @@
 					"df.write.mode(\"overwrite\").saveAsTable(\"default.anomaly_detector_testing_data\")"
 				],
 				"execution_count": 4
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"from mmlspark.cognitive import *\r\n",
+					"from notebookutils import mssparkutils\r\n",
+					"from pyspark.sql.functions import col\r\n",
+					"from pyspark.sql.types import DoubleType, TimestampType\r\n",
+					"from pyspark.sql.functions import unix_timestamp, to_timestamp, date_format\r\n",
+					"\r\n",
+					"\r\n",
+					"# Load the data into a Spark DataFrame\r\n",
+					"df = spark.sql(\"SELECT DueDate, DaysLate, case when DaysLate > 0 then 1 else 0 end as Late_Yes_or_No, customerID FROM default.anomaly_detector_testing_data\") \\\r\n",
+					"    .withColumn(\"DaysLate\", col(\"DaysLate\").cast(DoubleType())) \\\r\n",
+					"    .withColumn(\"DueDateDT\", date_format(\\\r\n",
+					"        to_timestamp(col(\"DueDate\"), \"M/dd/yyyy\"),\\\r\n",
+					"        \"yyyy-MM-dd'T'HH:mm:ssXXX\"))\\\r\n",
+					"    .sort(col(\"DueDateDT\"), ascending=True)\r\n",
+					"\r\n",
+					"df.show(10)\r\n",
+					"\r\n",
+					"anomalyDetector = (SimpleDetectAnomalies()\r\n",
+					"    .setLinkedService(\"pbifinance_anomolydetector\")\r\n",
+					"    .setOutputCol(\"output\")\r\n",
+					"    .setErrorCol(\"error\")\r\n",
+					"    .setGranularity(\"daily\")\r\n",
+					"    .setTimestampCol(\"DueDateDT\")\r\n",
+					"    .setValueCol(\"DaysLate\")    \r\n",
+					"    .setGroupbyCol(\"customerID\")       \r\n",
+					"     )\r\n",
+					"\r\n",
+					"results = anomalyDetector.transform(df)\r\n",
+					"\r\n",
+					"# Show the results\r\n",
+					"display(results.select(\"customerID\", \"DueDate\", \"DaysLate\", \"output.*\", \"error\").limit(10))"
+				],
+				"execution_count": null
 			}
 		]
 	}
