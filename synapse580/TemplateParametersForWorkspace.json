@@ -1,0 +1,27 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"workspaceName": {
+			"value": "synapse580"
+		},
+		"CosmosDBIoTDemo_connectionString": {
+			"value": ""
+		},
+		"RetailSalesDemoDB_connectionString": {
+			"value": ""
+		},
+		"synapse580-WorkspaceDefaultSqlServer_connectionString": {
+			"value": ""
+		},
+		"pbifinance_anomolydetector_properties_typeProperties_subscriptionId": {
+			"value": "b9913441-8a8e-4fb1-812a-9fcbe1dd9aba"
+		},
+		"synapse580-WorkspaceDefaultStorage_properties_typeProperties_url": {
+			"value": "https://synapse580.dfs.core.windows.net"
+		},
+		"synpase580kv_properties_typeProperties_baseUrl": {
+			"value": "https://synapse580kv.vault.azure.net/"
+		}
+	}
+}
