@@ -1,0 +1,27 @@
+{
+	"name": "pbifinan",
+	"properties": {
+		"annotations": [],
+		"type": "CognitiveService",
+		"typeProperties": {
+			"subscriptionId": "b9913441-8a8e-4fb1-812a-9fcbe1dd9aba",
+			"resourceGroup": "synapse580",
+			"csName": "cognitiveservices580",
+			"csKind": "CognitiveServices",
+			"csLocation": "westus2",
+			"endPoint": "https://cognitiveservices580.cognitiveservices.azure.com/",
+			"csKey": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "synpase580kv",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "synapse580key"
+			}
+		},
+		"connectVia": {
+			"referenceName": "AutoResolveIntegrationRuntime",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}
