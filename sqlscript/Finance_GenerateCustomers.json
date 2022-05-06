@@ -1,0 +1,17 @@
+{
+	"name": "Finance_GenerateCustomers",
+	"properties": {
+		"content": {
+			"query": "-- This is auto-generated code\nalter View vw_finance\nAS\nSELECT \n[CustomerGEID]\n,[ExtractDate]\n,[GeographicArea]\n,[Age]-18 as Age \n,[OperationModel]\n,[MaturityStage]\n \n,dateadd(year,18,(Convert(date, Right(FoundedYear, Len(FoundedYear) - CHARINDEX(', ',FoundedYear)), 101))) as [FoundedYear]\n,(Convert(date, Right(LatestExportDate, Len(LatestExportDate) - CHARINDEX(', ',LatestExportDate)), 101)) as [LatestExportDate]\n,[CustomerInLatestExport]\n,[Generation]\n \n,[Locations]\n,[Industry]\n,[Infrastructure]\n,[Size]\n,case when Year(Convert(date, Right(DateFirstPurchase, Len(DateFirstPurchase) - CHARINDEX(', ',DateFirstPurchase)), 101))=2021\n    THEN dateadd(year,-1,Convert(date, Right(DateFirstPurchase, Len(DateFirstPurchase) - CHARINDEX(', ',DateFirstPurchase)), 101))\n    ELSE Convert(date, Right(DateFirstPurchase, Len(DateFirstPurchase) - CHARINDEX(', ',DateFirstPurchase)), 101) END as [DateFirstPurchase]\n,[CustomerYears]\n\n ,CustomerGEID % 12 as Num --1-12\nFROM\n    OPENROWSET(\n        BULK 'https://synapse580.dfs.core.windows.net/workspace/Finance/customer.csv',\n        FORMAT = 'CSV',\n        PARSER_VERSION = '2.0',\n        HEADER_ROW = True\n    ) AS [result]\n\n\n\nSELECT CustomerGEID\n,ExtractDate\n,CASE GeographicArea\n    WHEN 'Australia' THEN 'South Candover'\n    WHEN 'Brazil' THEN 'New Hillsdown'\n    WHEN 'Canada' THEN 'Findas'\n    WHEN 'China' THEN 'Lividia'\n    WHEN 'Colombia' THEN 'Chernarus'        \n    WHEN 'Egypt' THEN 'Nordenija'\n    WHEN 'France' THEN 'Mortadelonia'\n    WHEN 'India' THEN 'Libria'            \n    WHEN 'Norway' THEN 'Malicuria'     \n    WHEN 'South Africa' THEN 'Bahavia'      \n    WHEN 'USA' THEN 'Altruria'             \n    END as GeographicArea\n,case when \n    DateFirstPurchase < FoundedYear\n    then datediff(year,dateadd(month, -(datediff(month,DateFirstPurchase,FoundedYear) + Num), FoundedYear),LatestExportDate) \n    else Age end \nas Age\n,OperationModel\n,MaturityStage\n,Locations\n,Industry\n,case when Num = 11 then 'Nonprofit' else Infrastructure end as Infrastructure\n,[Size]\n,convert(varchar(10),DateFirstPurchase,101) DateFirstPurchase\n,CustomerYears\n,convert(varchar(10),case when DateFirstPurchase < FoundedYear\nthen dateadd(month, -(datediff(month,DateFirstPurchase,FoundedYear) + Num), FoundedYear)  \nelse FoundedYear end,101)  as FoundedYear\n,convert(varchar(10),LatestExportDate,101) LatestExportDate\n,CustomerInLatestExport\n,Generation as PrimaryMarketingDemographic\n\n--select distinct GeographicArea\nfrom vw_finance\n \n \nSelect Max(FoundedYear)  fy\n,max(DateFirstPurchase) dfp \nfrom vw_finance\n\nThis must be true ->\nDFP < LED\nFY < DFP",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "serverlessdb",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}
