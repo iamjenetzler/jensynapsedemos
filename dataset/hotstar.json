@@ -1,0 +1,64 @@
+{
+	"name": "hotstar",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "GoogleCloudStorage1",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "GoogleCloudStorageLocation",
+				"bucketName": "azureintegrationstor",
+				"fileName": "hotstar.csv"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "hotstar_id",
+				"type": "String"
+			},
+			{
+				"name": "title",
+				"type": "String"
+			},
+			{
+				"name": "description",
+				"type": "String"
+			},
+			{
+				"name": "genre",
+				"type": "String"
+			},
+			{
+				"name": "year",
+				"type": "String"
+			},
+			{
+				"name": "age_rating",
+				"type": "String"
+			},
+			{
+				"name": "running_time",
+				"type": "String"
+			},
+			{
+				"name": "seasons",
+				"type": "String"
+			},
+			{
+				"name": "episodes",
+				"type": "String"
+			},
+			{
+				"name": "type",
+				"type": "String"
+			}
+		]
+	}
+}
