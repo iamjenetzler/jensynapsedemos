@@ -8,11 +8,26 @@
 		"CosmosDBIoTDemo_connectionString": {
 			"value": ""
 		},
+		"CosmosDbMongoDbApi_connectionString": {
+			"value": ""
+		},
 		"RetailSalesDemoDB_connectionString": {
+			"value": ""
+		},
+		"jensqlcosmos_connectionString": {
+			"value": ""
+		},
+		"jensqlcosmos_sharedifferentials_connectionString": {
 			"value": ""
 		},
 		"synapse580-WorkspaceDefaultSqlServer_connectionString": {
 			"value": ""
+		},
+		"GoogleCloudStorage1_secretAccessKey": {
+			"value": ""
+		},
+		"CosmosDbMongoDbApi_properties_typeProperties_database": {
+			"value": "mongodb"
 		},
 		"pbifinance_anomolydetector_properties_typeProperties_subscriptionId": {
 			"value": "b9913441-8a8e-4fb1-812a-9fcbe1dd9aba"
@@ -22,6 +37,9 @@
 		},
 		"synpase580kv_properties_typeProperties_baseUrl": {
 			"value": "https://synapse580kv.vault.azure.net/"
+		},
+		"GoogleCloudStorage1_properties_typeProperties_accessKeyId": {
+			"value": "GOOG1E5Z7HP57ORZTVUICR7IVAZNPV62RW7T7SZM22MXUO3CUR2MFSKHCXREY"
 		}
 	}
 }
