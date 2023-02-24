@@ -1,5 +1,6 @@
 {
 	"name": "synpase580kv",
+	"type": "Microsoft.Synapse/workspaces/linkedservices",
 	"properties": {
 		"annotations": [],
 		"type": "AzureKeyVault",

@@ -1,0 +1,20 @@
+{
+	"name": "CLS_Servrless_1",
+	"properties": {
+		"folder": {
+			"name": "1 - Serverless and Dedicated"
+		},
+		"content": {
+			"query": "\ncreate or alter view dbo.covid as \nselect * \nfrom openrowset( \n    bulk 'https://pandemicdatalake.blob.core.windows.net/public/curated/covid-19/ecdc_cases/latest/ecdc_cases.parquet', \n    format = 'parquet') as rows \n\n\nselect top * from dbo.covid\n\n--Create User\nCREATE  USER  [trichter@microsoft.com]   FROM EXTERNAL PROVIDER WITH DEFAULT_SCHEMA=[dbo]\nCREATE  USER  [nikris@microsoft.com]   FROM EXTERNAL PROVIDER WITH DEFAULT_SCHEMA=[dbo]\n\n--Create Role\nCREATE ROLE LOB1;\n--Add user to Role\nALTER ROLE LOB1 ADD MEMBER [trichter@microsoft.com]\n\n--ALTER ROLE LOB1 ADD MEMBER [nikris@microsoft.com]\n\n--ALTER ROLE db_owner ADD MEMBER [nikris@microsoft.com]\n\n--Grant access to Role\nGRANT SELECT ON dbo.covid_DDM TO LOB1; \nGRANT ADMINISTER DATABASE BULK OPERATIONS TO LOB1\n\n\n--Simple view without iTVF\ncreate or alter view dbo.covid_CLS as \nselect Day,month,year,cases ,continent_exp \nfrom openrowset( \n    bulk 'https://pandemicdatalake.blob.core.windows.net/public/curated/covid-19/ecdc_cases/latest/ecdc_cases.parquet', \n    format = 'parquet') as rows \n\nGRANT SELECT ON dbo.covid_CLS(year,cases) TO LOB1; \n\n--DENY SELECT ON dbo.covid_CLS (column3) TO user1;\n\nEXECUTE AS USER= 'trichter@microsoft.com'\nselect  year,cases from  dbo.covid_CLS\n\nEXECUTE AS USER= 'trichter@microsoft.com'\nselect  * from  dbo.covid_CLS\n\n\n\n\n\n",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "master",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

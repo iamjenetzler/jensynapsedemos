@@ -1,0 +1,20 @@
+{
+	"name": "6_LDW",
+	"properties": {
+		"folder": {
+			"name": "1 - Serverless and Dedicated"
+		},
+		"content": {
+			"query": "--https://docs.microsoft.com/en-us/azure/synapse-analytics/sql/tutorial-logical-data-warehouse\nCREATE DATABASE Ldw2\n      COLLATE Latin1_General_100_BIN2_UTF8;\n\n\nCREATE MASTER KEY ENCRYPTION BY PASSWORD = '#Adm!n@123&sql';\n\n\nCREATE DATABASE SCOPED CREDENTIAL WorkspaceIdentity\nWITH IDENTITY = 'Managed Identity';\nGO\nCREATE EXTERNAL DATA SOURCE yellow_taxiprq WITH (\n    \tLOCATION   = 'https://nitheshsynapse.dfs.core.windows.net/imported', \n    CREDENTIAL = WorkspaceIdentity\n);\n\n--https://docs.microsoft.com/en-us/azure/synapse-analytics/sql/develop-storage-files-storage-access-control?tabs=shared-access-signature#server-scoped-credential\n--CREATE DATABASE SCOPED CREDENTIAL MyCosmosDbAccountCredential\n--WITH IDENTITY = 'SHARED ACCESS SIGNATURE',\n  --   SECRET = 's5zarR2pT0JWH9k8roipnWxUYBegOuFGjJpSjGlR36y86cW0GQ6RaaG8kGjsRAQoWMw1QKTkkX8HQtFpJjC8Hg==';\n\nGRANT REFERENCES ON CREDENTIAL::[WorkspaceIdentity] TO [nikris@microsoft.com];\nGO\nGRANT REFERENCES ON DATABASE SCOPED CREDENTIAL::MyCosmosDbAccountCredential TO <user>\nGO\n\n\nCREATE EXTERNAL FILE FORMAT ParquetFormat WITH (  FORMAT_TYPE = PARQUET );\nGO\nCREATE EXTERNAL FILE FORMAT CsvFormat WITH (  FORMAT_TYPE = DELIMITEDTEXT );\n\n\nCreate Schema yt\n\nCREATE EXTERNAL TABLE yt.yellowtaxi (\n\t[vendorID] varchar(8000),\n\t[tpepPickupDateTime] datetime2(7),\n\t[tpepDropoffDateTime] datetime2(7),\n\t[passengerCount] int,\n\t[tripDistance] float,\n\t[puLocationId] varchar(8000),\n\t[doLocationId] varchar(8000),\n\t[startLon] float,\n\t[startLat] float,\n\t[endLon] float,\n\t[endLat] float,\n\t[rateCodeId] int,\n\t[storeAndFwdFlag] varchar(8000),\n\t[paymentType] varchar(8000),\n\t[fareAmount] float,\n\t[extra] float,\n\t[mtaTax] float,\n\t[improvementSurcharge] varchar(8000),\n\t[tipAmount] float,\n\t[tollsAmount] float,\n\t[totalAmount] float\n\t)\n\tWITH (\n\tLOCATION = 'nyctlc/yellow/puYear=2001/puMonth=*/*.snappy.parquet',\n\tDATA_SOURCE = yellow_taxiprq,\n\tFILE_FORMAT = ParquetFormat\n\t)\n\n\n    Select Top 10 * from yellowtaxi\n\n\ndrop  view yt.VW_YellowTaxi\nCreate view yt.VW_YellowTaxi as\nSELECT\n    *\nFROM\n    OPENROWSET(\n        BULK 'nyctlc/yellow/puYear=*/puMonth=*/*.snappy.parquet',\n        FORMAT='PARQUET',\n        DATA_SOURCE='yellow_taxiprq'\n    ) AS [result]\n\n\nCreate view yt.VW_YellowTaxi_Agg as\nSELECT \nYear([tpepPickupDateTime]) as [Year]\n,SUM([passengerCount]) as passengerCount\n,count(*) as Tripcount\n FROM [yt].[VW_YellowTaxi]\n group by Year([tpepPickupDateTime]) \n--Order by Year([tpepPickupDateTime]) \n\n\nselect * from yt.VW_YellowTaxi_Agg\norder by [Year]\n\n\n\n--Access and permissions \n--AAD user\nCREATE USER [kalyany@microsoft.com] FROM EXTERNAL PROVIDER;\nGO\n\n--SQL user\nCREATE LOGIN [PBI_user] WITH PASSWORD = 'PBI$1234neverExpire';\nCREATE USER [PBI_user] FROM LOGIN [PBI_user];\n\n\nDENY ADMINISTER DATABASE BULK OPERATIONS TO [PBI_user]\nGO\nGRANT SELECT ON SCHEMA::yt TO [PBI_user]\nGO\nGRANT SELECT ON OBJECT::yt.VW_YellowTaxi_Agg TO [PBI_user]\nGRANT SELECT ON OBJECT::yt.yellowtaxi TO [PBI_user]\n\nGO\nGRANT REFERENCES ON DATABASE SCOPED CREDENTIAL::WorkspaceIdentity TO [PBI_user]\nGO",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "master",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

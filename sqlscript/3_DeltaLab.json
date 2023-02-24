@@ -1,0 +1,20 @@
+{
+	"name": "3_DeltaLab",
+	"properties": {
+		"folder": {
+			"name": "1 - Serverless and Dedicated"
+		},
+		"content": {
+			"query": "\nCreate view VW_Delta\nas\nSELECT TOP 10 *\nFROM OPENROWSET(\n    BULK 'https://sqlondemandstorage.blob.core.windows.net/delta-lake/covid/',\n    FORMAT = 'delta') as rows;\n\n\n\n\n    CREATE EXTERNAL DATA SOURCE DeltaLakeStorage\nWITH ( LOCATION = 'https://sqlondemandstorage.blob.core.windows.net/delta-lake/' );\nGO\n\nSELECT TOP 10 *\nFROM OPENROWSET(\n        BULK 'covid',\n        DATA_SOURCE = 'DeltaLakeStorage',\n        FORMAT = 'delta'\n    ) as rows;\n\n\n\n\n    SELECT TOP 10 *\nFROM OPENROWSET(\n        BULK 'covid',\n        DATA_SOURCE = 'DeltaLakeStorage',\n        FORMAT = 'delta'\n    )\n    WITH ( date_rep date,\n           cases int,\n           geo_id varchar(6)\n           ) as rows;\n\n\n           SELECT\n        YEAR(pickup_datetime) AS year,\n        passenger_count,\n        COUNT(*) AS cnt\nFROM  \n    OPENROWSET(\n        BULK 'yellow',\n        DATA_SOURCE = 'DeltaLakeStorage',\n        FORMAT='DELTA'\n    ) nyc\nWHERE\n    nyc.year = 2017\n    AND nyc.month IN (1, 2, 3)\n    AND pickup_datetime BETWEEN CAST('1/1/2017' AS datetime) AND CAST('3/31/2017' AS datetime)\nGROUP BY\n    passenger_count,\n    YEAR(pickup_datetime)\nORDER BY\n    YEAR(pickup_datetime),\n    passenger_count;",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "master",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

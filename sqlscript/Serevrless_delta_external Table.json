@@ -1,0 +1,20 @@
+{
+	"name": "Serevrless_delta_external Table",
+	"properties": {
+		"folder": {
+			"name": "1 - Serverless and Dedicated"
+		},
+		"content": {
+			"query": "CREATE DATABASE SCOPED CREDENTIAL [sqlondemand]\nWITH IDENTITY='SHARED ACCESS SIGNATURE',  \nSECRET = 'sv=2018-03-28&ss=bf&srt=sco&sp=rl&st=2019-10-14T12%3A10%3A25Z&se=2061-12-31T12%3A10%3A00Z&sig=KlSU2ullCscyTS0An0nozEpo4tO5JAgGBvw%2FJX2lguw%3D'\n\n\nCREATE EXTERNAL DATA SOURCE SqlOnDemandDemo WITH (\n    LOCATION = 'https://sqlondemandstorage.blob.core.windows.net',\n    CREDENTIAL = sqlondemand\n);\nGO\nCREATE EXTERNAL DATA SOURCE nyctlc\nWITH ( LOCATION = 'https://azureopendatastorage.blob.core.windows.net/nyctlc/')\nGO\nCREATE EXTERNAL DATA SOURCE DeltaLakeStorage\nWITH ( location = 'https://sqlondemandstorage.blob.core.windows.net/delta-lake/' );\n\n\nCREATE EXTERNAL FILE FORMAT QuotedCsvWithHeaderFormat\nWITH (  \n    FORMAT_TYPE = DELIMITEDTEXT,\n    FORMAT_OPTIONS ( FIELD_TERMINATOR = ',', STRING_DELIMITER = '\"', FIRST_ROW = 2   )\n);\nGO\nCREATE EXTERNAL FILE FORMAT ParquetFormat WITH (  FORMAT_TYPE = PARQUET );\nGO\nCREATE EXTERNAL FILE FORMAT DeltaLakeFormat WITH (  FORMAT_TYPE = DELTA );\nGO\n\n\n\nCREATE EXTERNAL TABLE deltaCovid (\n     date_rep date,\n     cases int,\n     geo_id varchar(600)\n) WITH (\n        LOCATION = 'covid', --> the root folder containing the Delta Lake files\n        data_source = DeltaLakeStorage,\n        FILE_FORMAT = DeltaLakeFormat\n);\n\n\nselect top 10 * from deltaCovid\n\n",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "master",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

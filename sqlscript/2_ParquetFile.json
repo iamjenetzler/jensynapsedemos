@@ -1,0 +1,20 @@
+{
+	"name": "2_ParquetFile",
+	"properties": {
+		"folder": {
+			"name": "1 - Serverless and Dedicated"
+		},
+		"content": {
+			"query": "select top 10 *\nfrom openrowset(\n    bulk 'https://pandemicdatalake.blob.core.windows.net/public/curated/covid-19/ecdc_cases/latest/ecdc_cases.parquet',\n    format = 'parquet') as rows\n\n    create external data source covid\nwith ( location = 'https://pandemicdatalake.blob.core.windows.net/public/curated/covid-19/ecdc_cases' );\ngo\nselect top 10 *\nfrom openrowset(\n        bulk 'latest/ecdc_cases.parquet',\n        data_source = 'covid',\n        format = 'parquet'\n    ) as rows\n\n    \n    --Check Infered datatype\n    --You can use sp_describe_first_results_set to check the resulting data types of your query.\n\n    EXEC sp_describe_first_result_set N'\n\tSELECT\n        date_rep,day,countries_and_territories,geo_id,country_territory_code\n\tFROM \n\t\tOPENROWSET(\n        \tBULK ''https://pandemicdatalake.blob.core.windows.net/public/curated/covid-19/ecdc_cases/latest/ecdc_cases.parquet'',\n\t        FORMAT=''PARQUET''\n    \t) AS nyc';\n\n\n--Query Partitioned data\n\n--CREATE EXTERNAL DATA SOURCE YellowTaxi\n--WITH ( LOCATION = 'https://azureopendatastorage.blob.core.windows.net/nyctlc/yellow/')\n--GO\n\n        SELECT TOP 10 *\nFROM  \n    OPENROWSET(\n        BULK 'puYear=2018/puMonth=9/*.snappy.parquet',\n        DATA_SOURCE = 'YellowTaxi',\n        FORMAT='PARQUET'\n    ) AS nyc\n\n\n\nSELECT\n        YEAR(tpepPickupDateTime),\n        passengerCount,\n        COUNT(*) AS cnt\nFROM  \n    OPENROWSET(\n        BULK 'puYear=*/puMonth=*/*.snappy.parquet',\n        DATA_SOURCE = 'YellowTaxi',\n        FORMAT='PARQUET'\n    ) nyc\nWHERE\n    nyc.filepath(1) = 2017\n    AND nyc.filepath(2) IN (1, 2, 3)\n    AND tpepPickupDateTime BETWEEN CAST('1/1/2017' AS datetime) AND CAST('3/31/2017' AS datetime)\nGROUP BY\n    passengerCount,\n    YEAR(tpepPickupDateTime)\nORDER BY\n    YEAR(tpepPickupDateTime),\n    passengerCount;\n\n\n\n\n--Parameterise\n    \nSELECT\n        YEAR(tpepPickupDateTime),\n        passengerCount,\n        nyc.filepath(1) Year,-- nyc.filepath(2),\n        COUNT(*) AS cnt\nFROM  \n    OPENROWSET(\n        BULK 'puYear=*/puMonth=*/*.snappy.parquet',\n        DATA_SOURCE = 'YellowTaxi',\n        FORMAT='PARQUET'\n    ) nyc\n--WHERE\n    --nyc.filepath(1) = 2017\n    --AND nyc.filepath(2) IN (1, 2, 3)\n    --AND \n    --tpepPickupDateTime BETWEEN CAST('1/1/2017' AS datetime) AND CAST('3/31/2017' AS datetime)\nGROUP BY\n    passengerCount,\n    YEAR(tpepPickupDateTime),  nyc.filepath(1)\nORDER BY\n    YEAR(tpepPickupDateTime),  nyc.filepath(1),\n    passengerCount;\n\n\n--Query Mutliple files :\nSELECT TOP 10 * FROM\n    OPENROWSET(\n        BULK (\n        'https://nitheshsynapse.dfs.core.windows.net/imported/nyctlc/yellow/puYear=2001/**', \n        'https://nitheshsynapse.dfs.core.windows.net/imported/nyctlc/yellow/puYear=2002/**',\n        'https://nitheshsynapse.dfs.core.windows.net/imported/nyctlc/yellow/puYear=2003/**'\n        ),\n        FORMAT = 'PARQUET'\n    ) AS [result]\n\n\n\n    --Parquet Type mapping \n--https://docs.microsoft.com/en-us/azure/synapse-analytics/sql/develop-openrowset#type-mapping-for-parquet\n",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "master",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

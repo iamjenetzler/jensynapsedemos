@@ -1,0 +1,20 @@
+{
+	"name": "DDM_Servrless_1",
+	"properties": {
+		"folder": {
+			"name": "1 - Serverless and Dedicated"
+		},
+		"content": {
+			"query": "\ncreate or alter view dbo.covid as \nselect * \nfrom openrowset( \n    bulk 'https://pandemicdatalake.blob.core.windows.net/public/curated/covid-19/ecdc_cases/latest/ecdc_cases.parquet', \n    format = 'parquet') as rows \n\n\nselect * from dbo.covid\n\n--Create User\nCREATE  USER  [trichter@microsoft.com]   FROM EXTERNAL PROVIDER WITH DEFAULT_SCHEMA=[dbo]\nCREATE  USER  [nikris@microsoft.com]   FROM EXTERNAL PROVIDER WITH DEFAULT_SCHEMA=[dbo]\n\n--Create Role\nCREATE ROLE LOB1;\n--Add user to Role\nALTER ROLE LOB1 ADD MEMBER [trichter@microsoft.com]\n\n--ALTER ROLE LOB1 ADD MEMBER [nikris@microsoft.com]\n\n--ALTER ROLE db_owner ADD MEMBER [nikris@microsoft.com]\n\n--Grant access to Role\nGRANT SELECT ON dbo.covid_DDM TO LOB1; \nGRANT ADMINISTER DATABASE BULK OPERATIONS TO LOB1\n\n\n--Simple view without iTVF\ncreate or alter view dbo.covid_DDM as \nselect Day,month,year,cases ,\ncontinent_exp = case \n\twhen IS_ROLEMEMBER('LOB1') =1 then concat('****', substring(continent_exp, 3, 6), '******')\n\telse continent_exp\nend \nfrom openrowset( \n    bulk 'https://pandemicdatalake.blob.core.windows.net/public/curated/covid-19/ecdc_cases/latest/ecdc_cases.parquet', \n    format = 'parquet') as rows \n\nGRANT SELECT ON dbo.covid_DDM  TO LOB1; \n\nEXECUTE AS USER = 'trichter@microsoft.com'\nselect  top 10 * from  dbo.covid_DDM \n\n\n/************Example using iTVF****************/\n\n--Create Schema\ncreate schema secure \ngo \n\n--Create Function\ncreate or alter function secure.geo_mask(@IsRole int) \nreturns table \nreturn ( \n   select Day,month,year,cases ,\ncontinent_exp = case \n\twhen @IsRole =1 then concat('****', Reverse(continent_exp),'***')\n\telse continent_exp\nend \nfrom openrowset( \n    bulk 'https://pandemicdatalake.blob.core.windows.net/public/curated/covid-19/ecdc_cases/latest/ecdc_cases.parquet', \n    format = 'parquet') as rows \n) \n\nGRANT SELECT ON secure.covid_DDM TO LOB1; \n\n--Create view using iTVF\ncreate or alter view secure.covid_DDM\nas \nselect * \nfrom secure.geo_mask(IS_ROLEMEMBER('LOB1'))\ngo \n\nEXECUTE AS USER= 'trichter@microsoft.com'\nselect * from secure.covid_DDM \n\n\n\n\n",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "master",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

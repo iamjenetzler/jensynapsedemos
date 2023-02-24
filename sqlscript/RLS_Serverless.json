@@ -1,0 +1,20 @@
+{
+	"name": "RLS_Serverless",
+	"properties": {
+		"folder": {
+			"name": "1 - Serverless and Dedicated"
+		},
+		"content": {
+			"query": "create or alter view dbo.covid as \n\nselect * \nfrom openrowset( \n    bulk 'https://nithsstoragesynapse.dfs.core.windows.net/nitheshcontainer/ecdc_cases.parquet' ,\n--'https://pandemicdatalake.blob.core.windows.net/public/curated/covid-19/ecdc_cases/latest/ecdc_cases.parquet', \n    format = 'parquet') as rows \n\n\nselect  top 10 * from dbo.covid\n\n\ncreate or alter view dbo.covid as \nselect * \nfrom openrowset( \n    bulk 'https://nithsstoragesynapse.dfs.core.windows.net/nitheshcontainer/ecdc_cases.parquet', \n    format = 'parquet') as rows \nWHERE \n    (SUSER_SNAME() = 'nikris@microsoft.com' AND geo_id = 'RS') \n--OR\n--( IS_ROLEMEMBER('AfricaAnalyst', SUSER_SNAME()) = 1 AND continent_exp = 'Africa')\n\nselect  * from dbo.covid\n\n\n\ncreate schema secure \n\ngo \n\ncreate or alter function secure.geo_predicate(@geo_id varchar(20), @continent_exp varchar(20)) \n\nreturns table \n\nreturn ( \n\n    select condition = 1 \n\n    WHERE \n\n (SUSER_SNAME() = 'nikris@microsoft.com' AND @geo_id = 'RS') \n\n  OR \n   ( IS_ROLEMEMBER('LOB1', SUSER_SNAME()) = 1 AND  @continent_exp='Africa')\n\n\n) \n\n\n\ncreate or alter view secure.covid \nas \nselect * \nfrom dbo.covid \n    cross apply secure.geo_predicate(geo_id, continent_exp) \ngo \n\n\n\n\nGRANT SELECT ON secure.covid  TO LOB1; \n\nselect * from secure.covid\n\nEXECUTE AS USER= 'trichter@microsoft.com'\nselect * from secure.covid",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "master",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}
