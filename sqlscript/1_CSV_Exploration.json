@@ -1,0 +1,20 @@
+{
+	"name": "1_CSV_Exploration",
+	"properties": {
+		"folder": {
+			"name": "1 - Serverless and Dedicated"
+		},
+		"content": {
+			"query": "--https://docs.microsoft.com/en-us/azure/synapse-analytics/sql/query-single-csv-file\n\ncreate view vw_csv\nas\nselect top 10 *\nfrom openrowset(\n    bulk 'https://pandemicdatalake.blob.core.windows.net/public/curated/covid-19/ecdc_cases/latest/ecdc_cases.csv',\n    format = 'csv',\n    parser_version = '2.0',\n    HEADER_ROW = TRUE,  \n    firstrow = 0 ) as rows\n\n    select * from vw_csv\n\n\n--you can create an external data source with the location that points to the root folder of the storage instead of full path.\n\ncreate external data source covid\nwith ( location = 'https://pandemicdatalake.blob.core.windows.net/public/curated/covid-19/ecdc_cases' );\n\nselect top 10 *\nfrom openrowset(\n        bulk 'latest/ecdc_cases.csv',\n        data_source = 'covid',\n        format = 'csv',\n        parser_version ='2.0',\n        firstrow = 2\n          --, ERRORFILE_LOCATION = 'rejectedrows'\n     --  , ERRORFILE_DATA_SOURCE = 'covid'\n    ) as rows\n\n   --OPENROWSET enables you to explicitly specify what columns you want to read from the file using WITH clause\n   --The numbers after a data type in the WITH clause represent column index in the CSV file.\n\n   select top 10 *\nfrom openrowset(\n        bulk 'latest/ecdc_cases.csv',\n        data_source = 'covid',\n        format = 'csv',\n        parser_version ='2.0',\n        firstrow = 2\n    ) with (\n        date_rep date 1,\n        cases int 5,\n        geo_id varchar(6) 8\n    ) as rows\n\n\n    --In some scenarios you might want to read the files that are constantly appended. \n\n    select top 10 *\nfrom openrowset(\n    bulk 'https://pandemicdatalake.blob.core.windows.net/public/curated/covid-19/ecdc_cases/latest/ecdc_cases.csv',\n    format = 'csv',\n    parser_version = '2.0',\n    firstrow = 2,\n    ROWSET_OPTIONS = '{\"READ_OPTIONS\":[\"ALLOW_INCONSISTENT_READS\"]}') as rows\n\n\n\n    --Check Infered datatype\n    --You can use sp_describe_first_results_set to check the resulting data types of your query.\nEXEC sp_describe_first_result_set N'\n    select date_rep,day,countries_and_territories,geo_id,country_territory_code\nfrom openrowset(\n    bulk ''https://pandemicdatalake.blob.core.windows.net/public/curated/covid-19/ecdc_cases/latest/ecdc_cases.csv'',\n    format = ''csv'',\n    parser_version = ''2.0'',\n    HEADER_ROW = TRUE,\n    firstrow = 0 ) as rows'",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "master",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

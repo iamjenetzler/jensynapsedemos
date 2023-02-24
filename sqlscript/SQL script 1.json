@@ -1,0 +1,17 @@
+{
+	"name": "SQL script 1",
+	"properties": {
+		"content": {
+			"query": " \nselect top 100 ca_zip\n       ,sum(cs_sales_price)\n from catalog_sales\n     ,customer\n     ,customer_address\n     ,date_dim\n where cs_bill_customer_sk = c_customer_sk\n \tand c_current_addr_sk = ca_address_sk \n \tand ( substring(ca_zip,1,5) in ('85669', '86197','88274','83405','86475',\n                                   '85392', '85460', '80348', '81792')\n \t      or ca_state in ('CA','WA','GA')\n \t      or cs_sales_price > 500)\n \tand cs_sold_date_sk = d_date_sk\n \tand date_dim.d_qoy = 2 and date_dim.d_year = 1999 --time \n\t--and catalog_sales.filepath(2) = 2 and filepath(1) = 1999 --time\n\t--and catalog_sales.d_year = 1999 and catalog_sales.d_qoy = 2\n group by ca_zip\n order by ca_zip;\n\n\n--select * from catalog_sales where  catalog_sales.d_year = 1999 and catalog_sales.d_qoy = 2\n--select top 10 * from customer\n\nselect top 100 \n   count(distinct cs_order_number) as \"order count\"\n  ,sum(cs_ext_ship_cost) as \"total shipping cost\"\n  ,sum(cs_net_profit) as \"total net profit\"\nfrom\n   catalog_sales cs1\n  ,date_dim\n  ,customer_address\n  ,call_center\nwhere\n    d_date between '1999-03-01' and \n\t\t   dateadd(day, 60, cast('1999-03-01' as date))\nand cs1.cs_ship_date_sk = d_date_sk\nand cs1.cs_ship_addr_sk = ca_address_sk\nand ca_state = 'TX'\nand cs1.cs_call_center_sk = cc_call_center_sk\n--and cc_county in ('Jefferson Davis Parish','Gage County','Sierra County','Pennington County',\n                 --'Wadena County'\n--)\nand exists (select *\n            from catalog_sales cs2\n            where cs1.cs_order_number = cs2.cs_order_number\n              and cs1.cs_warehouse_sk <> cs2.cs_warehouse_sk)\nand not exists(select *\n               from catalog_returns cr1\n               where cs1.cs_order_number = cr1.cr_order_number)\norder by count(distinct cs_order_number);",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "lakehouse",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

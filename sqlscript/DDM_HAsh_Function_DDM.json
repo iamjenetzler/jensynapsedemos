@@ -1,0 +1,20 @@
+{
+	"name": "DDM_HAsh_Function_DDM",
+	"properties": {
+		"folder": {
+			"name": "1 - Serverless and Dedicated"
+		},
+		"content": {
+			"query": "\n\n\ncreate or alter view dbo.covid_Hashbyte as \nselect distinct HASHBYTES('MD5',countries_and_territories) AS Hash_countries_and_territories, --Returns Varbinary Need to convert into Varchat like below\nCONVERT(NVARCHAR(32),HashBytes('MD5', countries_and_territories),2) String_countries_and_territories ,--Converetd to Varchar and can use this field to filter\ncountries_and_territories \nfrom openrowset( \n    bulk 'https://pandemicdatalake.blob.core.windows.net/public/curated/covid-19/ecdc_cases/latest/ecdc_cases.parquet', \n    format = 'parquet') as rows \n\nselect * from dbo.covid_Hashbyte\nwhere String_countries_and_territories='6DDECD8CCD9F648D19DC02C7A566CB4F'\n\n\n--------------------------------------------Mask\\Hash rule based on user name-------------------------------\n\n--Create User\nCREATE  USER  [trichter@microsoft.com]   FROM EXTERNAL PROVIDER WITH DEFAULT_SCHEMA=[dbo]\n--Create Role\nCREATE ROLE LOB1;\n--Add user to Role\nALTER ROLE LOB1 ADD MEMBER [trichter@microsoft.com]\n\n--Grant access to Role\n\nGRANT ADMINISTER DATABASE BULK OPERATIONS TO LOB1\n\n--Simple view without iTVF\ncreate or alter view dbo.Hash_covid_DDM as \nselect Day,month,year,cases ,\ncountries_and_territories = case \n\twhen IS_ROLEMEMBER('LOB1') =1 then CONVERT(NVARCHAR(32),HashBytes('MD5', countries_and_territories),2)\n\telse countries_and_territories\nend \nfrom openrowset( \n    bulk 'https://pandemicdatalake.blob.core.windows.net/public/curated/covid-19/ecdc_cases/latest/ecdc_cases.parquet', \n    format = 'parquet') as rows \n\nGRANT SELECT ON dbo.Hash_covid_DDM TO LOB1; \n\nEXECUTE AS USER = 'trichter@microsoft.com'\nselect  top 10 * from  dbo.Hash_covid_DDM\n\n\n/************Example using iTVF****************/\n\n--Create Schema\ncreate schema secure \ngo \n\n--Create Function\ncreate or alter function secure.geo_hashmask(@IsRole int) \nreturns table \nreturn ( \n   select Day,month,year,cases ,\ncountries_and_territories = case \n\twhen @IsRole =1 then CONVERT(NVARCHAR(32),HashBytes('MD5', countries_and_territories),2)\n\telse countries_and_territories\nend \nfrom openrowset( \n    bulk 'https://pandemicdatalake.blob.core.windows.net/public/curated/covid-19/ecdc_cases/latest/ecdc_cases.parquet', \n    format = 'parquet') as rows \n) \n\nGRANT SELECT ON secure.covid_DDM_Hsh TO LOB1; \n\n--Create view using iTVF\ncreate or alter view secure.covid_DDM_Hsh\nas \nselect * \nfrom secure.geo_hashmask(IS_ROLEMEMBER('LOB1'))\ngo \n\nEXECUTE AS USER= 'trichter@microsoft.com'\nselect * from secure.covid_DDM_Hsh \n\n\n\n\n",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "master",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

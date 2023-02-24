@@ -1,0 +1,20 @@
+{
+	"name": "Transform using CETAS",
+	"properties": {
+		"folder": {
+			"name": "1 - Serverless and Dedicated"
+		},
+		"content": {
+			"query": "\nCreate view VW_YellowTaxi as\nSELECT\n    *\nFROM\n    OPENROWSET(\n        BULK 'https://nitheshsynapse.dfs.core.windows.net/imported/nyctlc/yellow/*/*/*.parquet',\n        FORMAT='PARQUET'\n    ) AS [result]\n\tSELECT \nYear([tpepPickupDateTime]) as [Year]\n,SUM([passengerCount]) as passengerCount\n,count(*) as Tripcount\n FROM [dbo].[vw_yellowtaxi]\n group by Year([tpepPickupDateTime]) \nOrder by Year([tpepPickupDateTime]) \n\n\nselect * from VW_YellowTaxi\n\n\nIF NOT EXISTS (SELECT * FROM sys.external_file_formats WHERE name = 'CETAS_fileformat') \n\tCREATE EXTERNAL FILE FORMAT [CETAS_fileformat] \n\tWITH ( FORMAT_TYPE = PARQUET)\nGO\n\nIF NOT EXISTS (SELECT * FROM sys.external_data_sources WHERE name = 'CETAS_Datasource') \n\tCREATE EXTERNAL DATA SOURCE [CETAS_Datasource] \n\tWITH (\n\t\tLOCATION   = 'https://nitheshsynapse.dfs.core.windows.net/imported'\n\t)\nGo\n-- Example is based on AdventureWorks  \ndrop  EXTERNAL TABLE ext_ellowtaxi_agg_1\nCREATE EXTERNAL TABLE ext_ellowtaxi_agg_1\n\t\n\tWITH \n     (LOCATION='NYC_yellowagg_4/today',\n     DATA_SOURCE = [imported_nitheshsynapse_dfs_core_windows_net],\n\tFILE_FORMAT = [SynapseParquetFormat]\n)\nas \nSELECT \nYear([tpepPickupDateTime]) as [Year]\n,SUM([passengerCount]) as passengerCount\n,count(*) as Tripcount\n FROM [dbo].[vw_yellowtaxi]\n group by Year([tpepPickupDateTime]) \nOrder by Year([tpepPickupDateTime]) \n\n\nselect * from ext_ellowtaxi_agg_1",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "master",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

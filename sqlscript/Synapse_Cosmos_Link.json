@@ -1,0 +1,20 @@
+{
+	"name": "Synapse_Cosmos_Link",
+	"properties": {
+		"folder": {
+			"name": "1 - Serverless and Dedicated"
+		},
+		"content": {
+			"query": "--https://docs.microsoft.com/en-us/azure/synapse-analytics/sql/query-cosmos-db-analytical-store?context=%2Fazure%2Fsynapse-analytics%2Fcontext%2Fcontext&tabs=openrowset-credential\n   /* CREATE CREDENTIAL [nithscosmos]\n    WITH IDENTITY = 'SHARED ACCESS SIGNATURE', SECRET = 'TXsX76Zz29rLZaogqFTkcsndW7yAjnRcQlnMLR7JvD48TK0oJ7xKcMM6ih98UII7CCo76RTV7qJCrWO1RrmPQg==';\n*/\n\nSELECT TOP 100 *\nFROM OPENROWSET(​PROVIDER = 'CosmosDB',\n                CONNECTION = 'Account=nithscosmos;Database=TestDB',\n                OBJECT = 'testcontainer',\n                SERVER_CREDENTIAL = 'nithscosmos'\n) AS [testcontainer]\n",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "master",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

@@ -1,0 +1,20 @@
+{
+	"name": "5_Serverless_Storageaccess_Security",
+	"properties": {
+		"folder": {
+			"name": "1 - Serverless and Dedicated"
+		},
+		"content": {
+			"query": "--To query a file located in Azure Storage, your serverless SQL pool end point needs a credential that contains the authentication information. \n\n\n\n--To allow a user to create or drop a credential, admin can GRANT/DENY ALTER ANY CREDENTIAL permission to a user:\nGRANT ALTER ANY CREDENTIAL TO [user_name];\n\n--To grant a REFERENCES permission ON a storage_credential for a specific_user, \nGRANT REFERENCES ON CREDENTIAL::[storage_credential] TO [specific_user];\n\n--Two types of credentials are used:\n\n--################### Server-level CREDENTIAL###################  is used for ad-hoc queries executed using OPENROWSET function. Credential name must match the storage URL.\n--Server-scoped credentials are used when SQL login calls OPENROWSET function without DATA_SOURCE to read files on some storage account. \n\n--AAD\n--Aure AD users can access any file on Azure storage if they have Storage Blob Data Owner, Storage Blob Data Contributor, or Storage Blob Data Reader role.\n--Azure AD users don't need credentials to access storage.\n\n--MSI\nCREATE CREDENTIAL [https://<storage_account>.dfs.core.windows.net/<container>]\nWITH IDENTITY='Managed Identity'\n\n--Service Principle\nCREATE CREDENTIAL [https://<storage_account>.dfs.core.windows.net/<container>]\nWITH IDENTITY = '<AppID>@<AuthorityUrl>' \n, SECRET = '<Secret>'\n\n--SAS\nCREATE CREDENTIAL [https://<mystorageaccountname>.dfs.core.windows.net/<mystorageaccountcontainername>]\nWITH IDENTITY='SHARED ACCESS SIGNATURE'\n, SECRET = 'sv=2018-03-28&ss=bfqt&srt=sco&sp=rwdlacup&se=2019-04-18T20:42:12Z&st=2019-04-18T12:42:12Z&spr=https&sig=lQHczNvrk1KoYLCpFdSsMANd0ef9BrIPBNJ3VYEIq78%3D';\nGO\n\n---------------------------Granting imporsanation access -------------\nCREATE CREDENTIAL [https://nitheshsynapse.dfs.core.windows.net/imported]\nWITH IDENTITY='Managed Identity'\n\nCREATE  USER  [kalyany@microsoft.com]  FROM EXTERNAL PROVIDER WITH DEFAULT_SCHEMA=[dbo]\n\nGRANT REFERENCES ON CREDENTIAL::[https://nitheshsynapse.dfs.core.windows.net/imported] TO [kalyany@microsoft.com] \n\nEXECUTE AS USER= 'kalyany@microsoft.com'\nSELECT\n    TOP 100 *\nFROM\n    OPENROWSET(\n        BULK 'https://nitheshsynapse.dfs.core.windows.net/imported/nyctlc/yellow/puYear=2001/**',\n        FORMAT = 'PARQUET'\n    ) AS [result]\n\n---------------------------Granting imporsanation acces-------------\n\n\n--###################DATABASE SCOPED CREDENTIAL################### is used Database-scoped credentials are used when any principal calls OPENROWSET function with DATA_SOURCE or selects data from external table that don't access public files. \n--AAD\n--Aure AD users can access any file on Azure storage if they have Storage Blob Data Owner, Storage Blob Data Contributor, or Storage Blob Data Reader role.\n--Azure AD users don't need credentials to access storage.\n\nCREATE DATABASE SCOPED CREDENTIAL WorkspaceIdentity1\nWITH IDENTITY = 'Managed Identity';\nGO\nGRANT REFERENCES ON DATABASE SCOPED CREDENTIAL::WorkspaceIdentity1 TO [kalyany@microsoft.com] \nEXECUTE AS USER= 'kalyany@microsoft.com'\n\nCREATE EXTERNAL DATA SOURCE yellow_taxiprqn WITH (\n    \tLOCATION   = 'https://nitheshsynapse.dfs.core.windows.net/imported', \n    CREDENTIAL = WorkspaceIdentity1\n);\n\nEXECUTE AS USER= 'kalyany@microsoft.com'\nSELECT TOP 10 * FROM OPENROWSET(BULK '/nyctlc/yellow/puYear=2001/**',\n                                DATA_SOURCE = 'yellow_taxiprqn',\n                                FORMAT='PARQUET') as rows;\n",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "lakehouse",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

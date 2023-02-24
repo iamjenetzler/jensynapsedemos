@@ -1,0 +1,20 @@
+{
+	"name": "0_SettingUp",
+	"properties": {
+		"folder": {
+			"name": "1 - Serverless and Dedicated"
+		},
+		"content": {
+			"query": "CREATE DATABASE mydbname1\n\n\n-- create master key that will protect the credentials:\nCREATE MASTER KEY ENCRYPTION BY PASSWORD = 'enterverystrongpa$$w0rdhere'\n\n-- create credentials for containers in our demo storage account\nCREATE DATABASE SCOPED CREDENTIAL sqlondemand\nWITH IDENTITY='SHARED ACCESS SIGNATURE',  \nSECRET = 'sv=2018-03-28&ss=bf&srt=sco&sp=rl&st=2019-10-14T12%3A10%3A25Z&se=2061-12-31T12%3A10%3A00Z&sig=KlSU2ullCscyTS0An0nozEpo4tO5JAgGBvw%2FJX2lguw%3D'\nGO\nCREATE EXTERNAL DATA SOURCE SqlOnDemandDemo WITH (\n    LOCATION = 'https://sqlondemandstorage.blob.core.windows.net',\n    CREDENTIAL = sqlondemand\n);\n\n\n\nSELECT TOP 10 *\nFROM OPENROWSET\n  (\n      BULK 'csv/population/*.csv',\n      DATA_SOURCE = 'SqlOnDemandDemo',\n      FORMAT = 'CSV', PARSER_VERSION = '2.0'\n  )\nWITH\n  (\n      country_code VARCHAR (5)\n    , country_name VARCHAR (100)\n    , year smallint\n    , population bigint\n  ) AS r\nWHERE\n  country_name = 'Luxembourg' AND year = 2017\n\n  --Json https://docs.microsoft.com/en-us/azure/synapse-analytics/quickstart-serverless-sql-pool#query-json-files-1\n\n\n\n  SELECT\n    JSON_VALUE(jsonContent, '$.title') AS title\n  , JSON_VALUE(jsonContent, '$.publisher') as publisher\n  , jsonContent\nFROM OPENROWSET\n  (\n      BULK 'json/books/*.json',\n      DATA_SOURCE = 'SqlOnDemandDemo'\n    , FORMAT='CSV'\n    , FIELDTERMINATOR ='0x0b'\n    , FIELDQUOTE = '0x0b'\n    , ROWTERMINATOR = '0x0b'\n  )\nWITH\n  ( jsonContent varchar(8000) ) AS [r]\nWHERE\n  JSON_VALUE(jsonContent, '$.title') = 'Probabilistic and Statistical Methods in Cryptology, An Introduction by Selected Topics'",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "master",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

@@ -1,5 +1,6 @@
 {
 	"name": "pbifinance_anomolydetector",
+	"type": "Microsoft.Synapse/workspaces/linkedservices",
 	"properties": {
 		"annotations": [],
 		"type": "CognitiveService",
