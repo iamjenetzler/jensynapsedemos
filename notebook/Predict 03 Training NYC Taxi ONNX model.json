@@ -13,6 +13,7 @@
 			"executorMemory": "56g",
 			"executorCores": 8,
 			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false,
 			"conf": {
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2"
@@ -33,12 +34,14 @@
 				"endpoint": "https://synapse580.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/sparkpool1",
 				"auth": {
 					"type": "AAD",
-					"authResource": "https://dev.azuresynapse.net"
+					"authResource": "https://dev.azuresynapse.net",
+					"authHeader": null
 				},
 				"sparkVersion": "2.4",
 				"nodeCount": 10,
 				"cores": 8,
-				"memory": 56
+				"memory": 56,
+				"extraHeader": null
 			},
 			"sessionKeepAliveTimeout": 30
 		},
@@ -48,15 +51,13 @@
 				"source": [
 					"## Predict-New-York-Taxi-Trip-Amount\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "markdown",
 				"source": [
 					"### Read data from open dataset"
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -78,7 +79,6 @@
 					"        .to_pandas_dataframe()\r\n",
 					"    green_taxi_df = green_taxi_df.append(temp_df_green.sample(2000))"
 				],
-				"attachments": null,
 				"execution_count": 17
 			},
 			{
@@ -88,7 +88,6 @@
 					"\r\n",
 					"green_taxi_df.head(10)"
 				],
-				"attachments": null,
 				"execution_count": 19
 			},
 			{
@@ -96,8 +95,7 @@
 				"source": [
 					"### Data exploration and feature engineering\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -116,7 +114,6 @@
 					"\n",
 					"green_taxi_df.head(10)"
 				],
-				"attachments": null,
 				"execution_count": 21
 			},
 			{
@@ -138,7 +135,6 @@
 					"\r\n",
 					"green_taxi_df.columns"
 				],
-				"attachments": null,
 				"execution_count": 24
 			},
 			{
@@ -155,7 +151,6 @@
 					"    \n",
 					"green_taxi_df.head(5)"
 				],
-				"attachments": null,
 				"execution_count": 23
 			},
 			{
@@ -165,7 +160,6 @@
 					"\r\n",
 					"green_taxi_df.describe()"
 				],
-				"attachments": null,
 				"execution_count": 25
 			},
 			{
@@ -185,7 +179,6 @@
 					"for col in columns_to_remove_for_training:\r\n",
 					"    final_df.pop(col)"
 				],
-				"attachments": null,
 				"execution_count": 26
 			},
 			{
@@ -194,7 +187,6 @@
 					"# describe the data\r\n",
 					"final_df.describe()"
 				],
-				"attachments": null,
 				"execution_count": 27
 			},
 			{
@@ -228,7 +220,6 @@
 					"\r\n",
 					"display(final_df)"
 				],
-				"attachments": null,
 				"execution_count": 28
 			},
 			{
@@ -236,8 +227,7 @@
 				"source": [
 					"## AutoML setup and running experiment\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -260,7 +250,6 @@
 					"ws = Workspace(subscription_id = subscription_id, resource_group = resource_group, workspace_name = workspace_name)\n",
 					"ws.write_config()"
 				],
-				"attachments": null,
 				"execution_count": 30
 			},
 			{
@@ -273,7 +262,6 @@
 					"\r\n",
 					"x_train, x_test, y_train, y_test = train_test_split(x_df, y_df, test_size=0.2, random_state=223)"
 				],
-				"attachments": null,
 				"execution_count": 31
 			},
 			{
@@ -290,7 +278,6 @@
 					"    \"n_cross_validations\": 2\n",
 					"}"
 				],
-				"attachments": null,
 				"execution_count": 32
 			},
 			{
@@ -309,7 +296,6 @@
 					"                             enable_onnx_compatible_models=True,\n",
 					"                             **automl_settings)"
 				],
-				"attachments": null,
 				"execution_count": 33
 			},
 			{
@@ -319,7 +305,6 @@
 					"experiment = Experiment(ws, \"greentaxi-experiment1\")\n",
 					"local_run = experiment.submit(automl_config, show_output=True)"
 				],
-				"attachments": null,
 				"execution_count": 34
 			},
 			{
@@ -327,15 +312,13 @@
 				"source": [
 					"### Retrieve the best onnx model\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
 				"source": [
 					"best_run, onnx_mdl = local_run.get_output(return_onnx_model=True) "
 				],
-				"attachments": null,
 				"execution_count": 35
 			},
 			{
@@ -345,7 +328,6 @@
 					"onnx_fl_path = \"./taxi_best_model.onnx\"\n",
 					"OnnxConverter.save_onnx_model(onnx_mdl, onnx_fl_path) #save the best onnx model"
 				],
-				"attachments": null,
 				"execution_count": 36
 			},
 			{
@@ -354,7 +336,6 @@
 					"with open(\"taxi_best_model.onnx\", \"wb\") as f:\n",
 					"    f.write(onnx_mdl.SerializeToString())"
 				],
-				"attachments": null,
 				"execution_count": 37
 			},
 			{
@@ -362,8 +343,7 @@
 				"source": [
 					"### Export ONNX model\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -379,7 +359,6 @@
 					"with open(\"./taxi_best_model.onnx\", \"rb\") as data:\n",
 					"    blob.upload_blob(data,overwrite=True)"
 				],
-				"attachments": null,
 				"execution_count": 41
 			}
 		]

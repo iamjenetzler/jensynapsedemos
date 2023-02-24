@@ -1,0 +1,251 @@
+{
+	"name": "CatalystOptimizer",
+	"properties": {
+		"folder": {
+			"name": "2 - Spark pool"
+		},
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "6bce80f5-496b-40d2-82a6-690bdec68b5f"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"synapse_widget": {
+				"version": "0.1"
+			},
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "code",
+				"metadata": {
+					"microsoft": {
+						"language": "scala"
+					}
+				},
+				"source": [
+					"%%spark\r\n",
+					"// val dfProduct = spark.read.synapsesql(\"dedicatedsqlpool.cso.DimProduct\")\r\n",
+					"// dfProduct.write.mode(\"overwrite\").format(\"delta\").save(\"/data/contoso/DimProduct/\")"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"microsoft": {
+						"language": "scala"
+					}
+				},
+				"source": [
+					"%%spark\r\n",
+					"// import org.apache.spark.sql.functions._\r\n",
+					"// val dfFactOnlineSales = spark.read.synapsesql(\"dedicatedsqlpool.cso.FactOnlineSales\")\r\n",
+					"// val dfFactOnlineSales1 = dfFactOnlineSales.withColumn(\"SaleYear\", year(dfFactOnlineSales(\"DateKey\")))\r\n",
+					"// dfFactOnlineSales1.write.mode(\"overwrite\").format(\"delta\").partitionBy(\"SaleYear\").save(\"/data/contoso/FactOnlineSales/\")"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"dfProduct = spark.read.format(\"delta\").load(\"/data/contoso/DimProduct/\")\r\n",
+					"dfProduct.createOrReplaceTempView(\"DimProduct\")\r\n",
+					"\r\n",
+					"dfFactOnlineSales = spark.read.format(\"delta\").load(\"/data/contoso/FactOnlineSales/\")\r\n",
+					"dfFactOnlineSales.createOrReplaceTempView(\"FactOnlineSales\")"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"dfJoinedSale = dfProduct.join(dfFactOnlineSales, dfProduct.ProductKey == dfFactOnlineSales.ProductKey) \r\n",
+					"dfJoinedSale = dfJoinedSale.filter(dfJoinedSale.SaleYear == 2009)\r\n",
+					"# display(dfJoinedSale)\r\n",
+					"\r\n",
+					"dfJoinedSale.explain() # only physical plan\r\n",
+					"# dfJoinedSale.explain(True) # all plans including logical and physical plan"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"dfAggregatedSale = dfJoinedSale.groupBy('BrandName').agg({'SalesAmount':'sum'})\r\n",
+					"\r\n",
+					"dfAggregatedSale.explain()\r\n",
+					"\r\n",
+					"# display(dfAggregatedSale)"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"microsoft": {
+						"language": "sparksql"
+					},
+					"collapsed": false
+				},
+				"source": [
+					"%%sql\r\n",
+					"EXPLAIN\r\n",
+					"SELECT  SUM(f.SalesAmount) AS sales_by_brand_amount\r\n",
+					",       p.BrandName\r\n",
+					"FROM    FactOnlineSales AS f\r\n",
+					"JOIN    DimProduct      AS p ON f.ProductKey = p.ProductKey\r\n",
+					"GROUP BY p.BrandName"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"print(spark.conf.get(\"spark.sql.autoBroadcastJoinThreshold\")) # 26214400 - 26 MB\r\n",
+					"\r\n",
+					"# df1.join(broadcast(df2), Seq(\"id\")).explain #broadcast join hint"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Adaptive Query Execution https://spark.apache.org/docs/latest/sql-performance-tuning.html#adaptive-query-execution\r\n",
+					"print(spark.conf.get(\"spark.sql.adaptive.enabled\"))"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"microsoft": {
+						"language": "sparksql"
+					},
+					"collapsed": false
+				},
+				"source": [
+					"%%sql\r\n",
+					"SELECT  SUM(f.SalesAmount) AS sales_by_brand_amount\r\n",
+					",       p.BrandName\r\n",
+					"FROM    FactOnlineSales AS f\r\n",
+					"JOIN    DimProduct      AS p ON f.ProductKey = p.ProductKey\r\n",
+					"GROUP BY p.BrandName"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					""
+				]
+			}
+		]
+	}
+}

@@ -13,6 +13,7 @@
 			"executorMemory": "56g",
 			"executorCores": 8,
 			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false,
 			"conf": {
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
@@ -31,12 +32,14 @@
 				"endpoint": "https://synapse580.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/spark1",
 				"auth": {
 					"type": "AAD",
-					"authResource": "https://dev.azuresynapse.net"
+					"authResource": "https://dev.azuresynapse.net",
+					"authHeader": null
 				},
 				"sparkVersion": "2.4",
 				"nodeCount": 10,
 				"cores": 8,
-				"memory": 56
+				"memory": 56,
+				"extraHeader": null
 			},
 			"sessionKeepAliveTimeout": 30
 		},
@@ -54,8 +57,7 @@
 					"\n",
 					"\n",
 					"<img src=\"https://cosmosnotebooksdata.blob.core.windows.net/notebookdata/store.PNG\" alt=\"Surface Device\" width=\"75%\"/>"
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "markdown",
@@ -71,15 +73,13 @@
 					"1. Create an Azure Machine Learning workspace using [this](https://docs.microsoft.com/en-us/azure/machine-learning/how-to-manage-workspace) tutorial.\n",
 					"1. Create an Azure Automated Machine Learning experiment using [this](https://docs.microsoft.com/en-us/azure/machine-learning/how-to-use-automated-ml-for-ml-models) tutorial. You don't need to run it, neither to create a compute cluster.\n",
 					"1. Go to your **Synapse Spark Pool**, click on the **Packages Settings** tab, upload the [req.txt](req.txt) file located in this same folder, and click **force to get new settings on the spark pool** option. "
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "markdown",
 				"source": [
 					"## Leverage power of Spark SQL to join & aggregate operational data across Cosmos DB containers"
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -111,7 +111,6 @@
 					"%%sql\n",
 					"create database if not exists RetailSalesDemoDB"
 				],
-				"attachments": null,
 				"execution_count": 2
 			},
 			{
@@ -148,7 +147,6 @@
 					"    spark.cosmos.container 'RetailSales'\n",
 					")"
 				],
-				"attachments": null,
 				"execution_count": 3
 			},
 			{
@@ -185,7 +183,6 @@
 					"    spark.cosmos.container 'StoreDemoGraphics'\n",
 					")"
 				],
-				"attachments": null,
 				"execution_count": 4
 			},
 			{
@@ -222,7 +219,6 @@
 					"    spark.cosmos.container 'Products'\n",
 					")"
 				],
-				"attachments": null,
 				"execution_count": 5
 			},
 			{
@@ -282,7 +278,6 @@
 					"\n",
 					"display(data)"
 				],
-				"attachments": null,
 				"execution_count": 3
 			},
 			{
@@ -293,8 +288,7 @@
 					"### Setup \n",
 					"Let's start with the AML Environment setup. Please replace all \"your-AML-%\" placeholders with your own information, that you can get from your AML workspace in the the Azure Portal.\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -329,7 +323,6 @@
 					"outputDf = pd.DataFrame(data = output, index = [''])\n",
 					"outputDf.T"
 				],
-				"attachments": null,
 				"execution_count": 4
 			},
 			{
@@ -337,8 +330,7 @@
 				"source": [
 					"### Data Preparation - Feature engineering, Splitting train & test datasets\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -399,7 +391,6 @@
 					"from azureml.core.dataset import Dataset\n",
 					"train_dataset = Dataset.Tabular.from_delimited_files(path=datastore.path('dataset/SurfaceSales_train.csv'))"
 				],
-				"attachments": null,
 				"execution_count": 5
 			},
 			{
@@ -408,8 +399,7 @@
 					"### Training the Models using AutoML Forecasting\n",
 					"\n",
 					"Please notice that **compute_target** is commented, meaning that the model training will run locally in Synapse Spark."
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -439,15 +429,13 @@
 					"\n",
 					""
 				],
-				"attachments": null,
 				"execution_count": 6
 			},
 			{
 				"cell_type": "markdown",
 				"source": [
 					"### Retrieving the Best Model and Forecasting"
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -464,15 +452,13 @@
 					"X_test[time_column_name] = pd.to_datetime(X_test[time_column_name])\n",
 					"y_predictions, X_trans = fitted_model.forecast(X_test)"
 				],
-				"attachments": null,
 				"execution_count": 7
 			},
 			{
 				"cell_type": "markdown",
 				"source": [
 					"### Plotting the Results"
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -547,7 +533,6 @@
 					"plt.legend((test_pred, test_test), ('prediction', 'truth'), loc='upper left', fontsize=8)\n",
 					"plt.show()"
 				],
-				"attachments": null,
 				"execution_count": 8
 			},
 			{
@@ -567,8 +552,7 @@
 					"1. [Create](https://docs.microsoft.com/en-us/azure/machine-learning/how-to-use-event-grid) Events Driven CI/CD Workflows.\n",
 					"\n",
 					""
-				],
-				"attachments": null
+				]
 			}
 		]
 	}

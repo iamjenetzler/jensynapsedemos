@@ -13,6 +13,7 @@
 			"executorMemory": "56g",
 			"executorCores": 8,
 			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false,
 			"conf": {
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2"
@@ -34,12 +35,14 @@
 				"endpoint": "https://synapse580.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/sparkpool1",
 				"auth": {
 					"type": "AAD",
-					"authResource": "https://dev.azuresynapse.net"
+					"authResource": "https://dev.azuresynapse.net",
+					"authHeader": null
 				},
 				"sparkVersion": "2.4",
 				"nodeCount": 10,
 				"cores": 8,
-				"memory": 56
+				"memory": 56,
+				"extraHeader": null
 			},
 			"sessionKeepAliveTimeout": 30
 		},
@@ -55,8 +58,7 @@
 				},
 				"source": [
 					"https://github.com/Azure-Samples/Synapse/tree/master/Notebooks/PySpark/Synapse%20Link%20for%20Cosmos%20DB%20samples"
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "markdown",
@@ -76,8 +78,7 @@
 					"\n",
 					">**Did you know?**  [Azure Cosmos DB analytical store](https://review.docs.microsoft.com/en-us/azure/cosmos-db/analytical-store-introduction?branch=release-build-cosmosdb) is a fully isolated column store for enabling large scale analytics against operational data in your Azure Cosmos DB, without any impact to your transactional workloads.\n",
 					"&nbsp;"
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "markdown",
@@ -88,8 +89,7 @@
 					"* [Click here](https://github.com/Azure-Samples/streaming-at-scale) to learn more about the possible ways to implement an end-to-end streaming solution using a choice of different Azure technologies.\n",
 					"\n",
 					">**Did you know?**  The Rate streaming source generates data at the specified number of rows per second and each output row contains a timestamp and value."
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -101,7 +101,6 @@
 					"                .load()\n",
 					"            )"
 				],
-				"attachments": null,
 				"execution_count": 1
 			},
 			{
@@ -109,8 +108,7 @@
 				"source": [
 					"### 2. Format the stream dataframe as per the IoTSignals schema\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -133,7 +131,6 @@
 					"                    .drop(\"timestamp\", \"value\")\n",
 					"                )"
 				],
-				"attachments": null,
 				"execution_count": 2
 			},
 			{
@@ -143,8 +140,7 @@
 					">**Did you know?** The \"cosmos.oltp\" is the Spark format that enables connection to the Cosmos DB Transactional store.\n",
 					"\n",
 					">**Did you know?** The ingestion to the Cosmos DB collection is always performed through the Transactional store irrespective of whether the Analytical Store is enabled or not."
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -161,7 +157,6 @@
 					"\n",
 					"streamQuery.awaitTermination()"
 				],
-				"attachments": null,
 				"execution_count": 3
 			}
 		]

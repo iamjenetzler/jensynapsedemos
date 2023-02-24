@@ -13,6 +13,7 @@
 			"executorMemory": "28g",
 			"executorCores": 4,
 			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false,
 			"conf": {
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
@@ -38,7 +39,8 @@
 				"endpoint": "https://synapse580.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/spark1",
 				"auth": {
 					"type": "AAD",
-					"authResource": "https://dev.azuresynapse.net"
+					"authResource": "https://dev.azuresynapse.net",
+					"authHeader": null
 				},
 				"sparkVersion": "2.4",
 				"nodeCount": 10,
@@ -60,8 +62,7 @@
 					"This notebook describes how to create a managed table from Spark. \n",
 					"The table will be synchronized and available in Synapse SQL Pools. \n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -89,7 +90,6 @@
 				"source": [
 					"DROP TABLE IF EXISTS cities"
 				],
-				"attachments": null,
 				"execution_count": 6
 			},
 			{
@@ -120,7 +120,6 @@
 					"  (name STRING, population INT)\n",
 					"  USING PARQUET"
 				],
-				"attachments": null,
 				"execution_count": 7
 			},
 			{
@@ -128,8 +127,7 @@
 				"source": [
 					"Insert a few rows into the table using a list of values.\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -157,7 +155,6 @@
 				"source": [
 					"INSERT INTO cities VALUES ('Seattle', 730400), ('San Francisco', 881549), ('Beijing', 21540000), ('Bangalore', 10540000)"
 				],
-				"attachments": null,
 				"execution_count": 8
 			},
 			{
@@ -165,8 +162,7 @@
 				"source": [
 					"* Retrieve values back. Click on 'Chart' below to review the visualization.\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -198,7 +194,6 @@
 				"source": [
 					"SELECT * FROM cities ORDER BY name"
 				],
-				"attachments": null,
 				"execution_count": 9
 			},
 			{
@@ -206,8 +201,7 @@
 				"source": [
 					"Drop the table. Please note the data will get deleted from the primary storage account associated with this workspace.\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -235,7 +229,6 @@
 				"source": [
 					"DROP TABLE cities"
 				],
-				"attachments": null,
 				"execution_count": 10
 			}
 		]

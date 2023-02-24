@@ -13,6 +13,7 @@
 			"executorMemory": "56g",
 			"executorCores": 8,
 			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false,
 			"conf": {
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
@@ -35,7 +36,8 @@
 				"endpoint": "https://synapse580.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/spark1",
 				"auth": {
 					"type": "AAD",
-					"authResource": "https://dev.azuresynapse.net"
+					"authResource": "https://dev.azuresynapse.net",
+					"authHeader": null
 				},
 				"sparkVersion": "2.4",
 				"nodeCount": 10,
@@ -88,22 +90,19 @@
 					"### 5. In your Azure Synapse workspace, go to the **Manage / Linked Services** tab and create a service called **RetailSalesDemoDB** pointing to the database in Cosmos DB created in item 3 above.\n",
 					"\n",
 					"<img src=\"https://cosmosnotebooksdata.blob.core.windows.net/notebookdata/ls.PNG\" alt=\"Surface Device\" width=\"100%\"/>"
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "markdown",
 				"source": [
 					"## "
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "markdown",
 				"source": [
 					"### 6. Now let's load the data into Spark DataFrames."
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -124,7 +123,6 @@
 					"              )\n",
 					""
 				],
-				"attachments": null,
 				"execution_count": 1
 			},
 			{
@@ -135,8 +133,7 @@
 					">**Did you know?** The \"cosmos.oltp\" is the Spark format that enables connection to the Cosmos DB Transactional store.\n",
 					"\n",
 					">**Did you know?** The ingestion to the Azure Cosmos DB collection is always performed through the Transactional store irrespective of whether the Analytical Store is enabled or not."
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -166,7 +163,6 @@
 					"            .save()     \n",
 					""
 				],
-				"attachments": null,
 				"execution_count": 2
 			},
 			{
@@ -175,8 +171,7 @@
 					"### 8. Using the Azure Cosmos DB Account portal, go to the Data Explorer and check if the data was loaded.\n",
 					"\n",
 					"## All Done! Now let's go to the [Forecast Notebook](2SalesForecastingWithAML.ipynb)."
-				],
-				"attachments": null
+				]
 			}
 		]
 	}

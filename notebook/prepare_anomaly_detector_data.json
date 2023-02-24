@@ -9,6 +9,7 @@
 			"executorMemory": "28g",
 			"executorCores": 4,
 			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false,
 			"conf": {
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
@@ -51,15 +52,13 @@
 					"    (\"1973-02-01T00:00:00Z\", 837.0),\n",
 					"    (\"1973-03-01T00:00:00Z\", 9000.0)\n",
 					"], [\"timestamp\", \"value\"]).withColumn(\"group\", lit(\"series1\"))"
-				],
-				"execution_count": null
+				]
 			},
 			{
 				"cell_type": "code",
 				"source": [
 					"df.write.mode(\"overwrite\").saveAsTable(\"anomaly_detector_testing_data\")"
-				],
-				"execution_count": null
+				]
 			}
 		]
 	}

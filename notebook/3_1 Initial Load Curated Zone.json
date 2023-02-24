@@ -1,0 +1,419 @@
+{
+	"name": "3_1 Initial Load Curated Zone",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "sparkpool1",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "112g",
+			"driverCores": 16,
+			"executorMemory": "112g",
+			"executorCores": 16,
+			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "3f1be029-5a34-47a7-924f-199ab1245403"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"synapse_widget": {
+				"version": "0.1"
+			},
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/b9913441-8a8e-4fb1-812a-9fcbe1dd9aba/resourceGroups/synapsehack/providers/Microsoft.Synapse/workspaces/synapsehackws/bigDataPools/sparkpool1",
+				"name": "sparkpool1",
+				"type": "Spark",
+				"endpoint": "https://synapsehackws.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/sparkpool1",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net",
+					"authHeader": null
+				},
+				"sparkVersion": "3.1",
+				"nodeCount": 10,
+				"cores": 16,
+				"memory": 112
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## Prepare data"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"import datetime  \r\n",
+					"from delta.tables import *\r\n",
+					"\r\n",
+					"# Set the strorage path info\r\n",
+					"account_name = 'synapsehackstor' # fill in your primary storage account name\r\n",
+					"enriched_container = 'enriched'\r\n",
+					"curated_container = 'curated' # fill in your container name\r\n",
+					"\r\n",
+					"\r\n",
+					"enriched_adls_path = 'abfss://%s@%s.dfs.core.windows.net/' % (enriched_container, account_name)\r\n",
+					"curated_adls_path = 'abfss://%s@%s.dfs.core.windows.net/' % (curated_container, account_name)\r\n",
+					"\r\n",
+					"print('Enriched storage account path: ' + enriched_adls_path)\r\n",
+					"print('Curated storage account path: ' + curated_adls_path)\r\n",
+					"\r\n",
+					"now = datetime.datetime.now()\r\n",
+					"print (now.strftime(\"%Y-%m-%d %H:%M:%S\"))\r\n",
+					""
+				],
+				"execution_count": 11
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## Converting Parquet to Delta"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# date_dim\r\n",
+					"domain = \"date_dim\"\r\n",
+					"\r\n",
+					"enriched_path = enriched_adls_path + now.strftime(\"%Y-%m-%d\") + '/' + domain + '/*.parquet'\r\n",
+					"date_dim_enriched_df = spark.read.format(\"parquet\").load(enriched_path)\r\n",
+					"\r\n",
+					"date_dim_enriched_df.write.mode(\"overwrite\").format(\"parquet\").save(curated_adls_path + \"/\" + domain)\r\n",
+					"\r\n",
+					"# Convert unpartitioned Parquet table at path '<path-to-table>'\r\n",
+					"deltaTable = DeltaTable.convertToDelta(spark, \"parquet.`\" + curated_adls_path + domain + \"`\")"
+				],
+				"execution_count": 12
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# catalog_sales \r\n",
+					"domain = \"catalog_sales\" \r\n",
+					"\r\n",
+					"enriched_path = enriched_adls_path + now.strftime(\"%Y-%m-%d\") + '/' + domain + '/d_year=*/d_qoy=*/d_moy=*/*.parquet'\r\n",
+					"'/*/catalog_sales/d_year=*/d_qoy=*/d_moy=*/*.parquet'\r\n",
+					"catalog_sales_enriched_df = spark.read.format(\"parquet\").load(enriched_path)\r\n",
+					"\r\n",
+					"catalog_sales_enriched_df.write.mode(\"overwrite\").format(\"parquet\").save(curated_adls_path + \"/\" + domain)\r\n",
+					"\r\n",
+					"# Convert unpartitioned Parquet table at path '<path-to-table>'\r\n",
+					"deltaTable = DeltaTable.convertToDelta(spark, \"parquet.`\" + curated_adls_path + domain + \"`\")\r\n",
+					""
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# call_center\r\n",
+					"domain = \"call_center\"\r\n",
+					"\r\n",
+					"enriched_path = enriched_adls_path + now.strftime(\"%Y-%m-%d\") + '/' + domain + '/*.parquet'\r\n",
+					"call_center_enriched_df = spark.read.format(\"parquet\").load(enriched_path)\r\n",
+					"\r\n",
+					"call_center_enriched_df.write.mode(\"overwrite\").format(\"parquet\").save(curated_adls_path + \"/\" + domain)\r\n",
+					"\r\n",
+					"# Convert unpartitioned Parquet table at path '<path-to-table>'\r\n",
+					"deltaTable = DeltaTable.convertToDelta(spark, \"parquet.`\" + curated_adls_path + domain + \"`\")"
+				],
+				"execution_count": 13
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# catalog_returns\r\n",
+					"domain = \"catalog_returns\"\r\n",
+					"\r\n",
+					"enriched_path = enriched_adls_path + now.strftime(\"%Y-%m-%d\") + '/' + domain + '/*.parquet'\r\n",
+					"catalog_returns_enriched_df = spark.read.format(\"parquet\").load(enriched_path)\r\n",
+					"\r\n",
+					"catalog_returns_enriched_df.write.mode(\"overwrite\").format(\"parquet\").save(curated_adls_path + \"/\" + domain)\r\n",
+					"\r\n",
+					"# Convert unpartitioned Parquet table at path '<path-to-table>'\r\n",
+					"deltaTable = DeltaTable.convertToDelta(spark, \"parquet.`\" + curated_adls_path + domain + \"`\")"
+				],
+				"execution_count": 14
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# customer\r\n",
+					"domain = \"customer\"\r\n",
+					"\r\n",
+					"enriched_path = enriched_adls_path + now.strftime(\"%Y-%m-%d\") + '/' + domain + '/*.parquet'\r\n",
+					"enriched_df = spark.read.format(\"parquet\").load(enriched_path)\r\n",
+					"\r\n",
+					"enriched_df.write.mode(\"overwrite\").format(\"parquet\").save(curated_adls_path + \"/\" + domain)\r\n",
+					"\r\n",
+					"# Convert unpartitioned Parquet table at path '<path-to-table>'\r\n",
+					"deltaTable = DeltaTable.convertToDelta(spark, \"parquet.`\" + curated_adls_path + domain + \"`\")"
+				],
+				"execution_count": 15
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# customer_address\r\n",
+					"domain = \"customer_address\"\r\n",
+					"\r\n",
+					"enriched_path = enriched_adls_path + now.strftime(\"%Y-%m-%d\") + '/' + domain + '/*.parquet'\r\n",
+					"enriched_df = spark.read.format(\"parquet\").load(enriched_path)\r\n",
+					"\r\n",
+					"enriched_df.write.mode(\"overwrite\").format(\"parquet\").save(curated_adls_path + \"/\" + domain)\r\n",
+					"\r\n",
+					"# Convert unpartitioned Parquet table at path '<path-to-table>'\r\n",
+					"deltaTable = DeltaTable.convertToDelta(spark, \"parquet.`\" + curated_adls_path + domain + \"`\")"
+				],
+				"execution_count": 16
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# customer_demographics\r\n",
+					"domain = \"customer_demographics\"\r\n",
+					"\r\n",
+					"enriched_path = enriched_adls_path + now.strftime(\"%Y-%m-%d\") + '/' + domain + '/*.parquet'\r\n",
+					"enriched_df = spark.read.format(\"parquet\").load(enriched_path)\r\n",
+					"\r\n",
+					"enriched_df.write.mode(\"overwrite\").format(\"parquet\").save(curated_adls_path + \"/\" + domain)\r\n",
+					"\r\n",
+					"# Convert unpartitioned Parquet table at path '<path-to-table>'\r\n",
+					"deltaTable = DeltaTable.convertToDelta(spark, \"parquet.`\" + curated_adls_path + domain + \"`\")"
+				],
+				"execution_count": 17
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# inventory\r\n",
+					"domain = \"inventory\"\r\n",
+					"\r\n",
+					"enriched_path = enriched_adls_path + now.strftime(\"%Y-%m-%d\") + '/' + domain + '/*.parquet'\r\n",
+					"enriched_df = spark.read.format(\"parquet\").load(enriched_path)\r\n",
+					"\r\n",
+					"enriched_df.write.mode(\"overwrite\").format(\"parquet\").save(curated_adls_path + \"/\" + domain)\r\n",
+					"\r\n",
+					"# Convert unpartitioned Parquet table at path '<path-to-table>'\r\n",
+					"deltaTable = DeltaTable.convertToDelta(spark, \"parquet.`\" + curated_adls_path + domain + \"`\")\r\n",
+					""
+				],
+				"execution_count": 18
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# item\r\n",
+					"domain = \"item\"\r\n",
+					"\r\n",
+					"enriched_path = enriched_adls_path + now.strftime(\"%Y-%m-%d\") + '/' + domain + '/*.parquet'\r\n",
+					"enriched_df = spark.read.format(\"parquet\").load(enriched_path)\r\n",
+					"\r\n",
+					"enriched_df.write.mode(\"overwrite\").format(\"parquet\").save(curated_adls_path + \"/\" + domain)\r\n",
+					"\r\n",
+					"# Convert unpartitioned Parquet table at path '<path-to-table>'\r\n",
+					"deltaTable = DeltaTable.convertToDelta(spark, \"parquet.`\" + curated_adls_path + domain + \"`\")"
+				],
+				"execution_count": 19
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# promotion\r\n",
+					"domain = \"promotion\"\r\n",
+					"\r\n",
+					"enriched_path = enriched_adls_path + now.strftime(\"%Y-%m-%d\") + '/' + domain + '/*.parquet'\r\n",
+					"enriched_df = spark.read.format(\"parquet\").load(enriched_path)\r\n",
+					"\r\n",
+					"enriched_df.write.mode(\"overwrite\").format(\"parquet\").save(curated_adls_path + \"/\" + domain)\r\n",
+					"\r\n",
+					"# Convert unpartitioned Parquet table at path '<path-to-table>'\r\n",
+					"deltaTable = DeltaTable.convertToDelta(spark, \"parquet.`\" + curated_adls_path + domain + \"`\")\r\n",
+					""
+				],
+				"execution_count": 20
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# warehouse\r\n",
+					"domain = \"warehouse\"\r\n",
+					"\r\n",
+					"enriched_path = enriched_adls_path + now.strftime(\"%Y-%m-%d\") + '/' + domain + '/*.parquet'\r\n",
+					"enriched_df = spark.read.format(\"parquet\").load(enriched_path)\r\n",
+					"\r\n",
+					"enriched_df.write.mode(\"overwrite\").format(\"parquet\").save(curated_adls_path + \"/\" + domain)\r\n",
+					"\r\n",
+					"# Convert unpartitioned Parquet table at path '<path-to-table>'\r\n",
+					"deltaTable = DeltaTable.convertToDelta(spark, \"parquet.`\" + curated_adls_path + domain + \"`\")\r\n",
+					""
+				],
+				"execution_count": 21
+			}
+		]
+	}
+}
