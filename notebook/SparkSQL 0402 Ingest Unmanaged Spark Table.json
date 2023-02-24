@@ -13,6 +13,7 @@
 			"executorMemory": "28g",
 			"executorCores": 4,
 			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false,
 			"conf": {
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
@@ -38,7 +39,8 @@
 				"endpoint": "https://synapse580.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/spark1",
 				"auth": {
 					"type": "AAD",
-					"authResource": "https://dev.azuresynapse.net"
+					"authResource": "https://dev.azuresynapse.net",
+					"authHeader": null
 				},
 				"sparkVersion": "2.4",
 				"nodeCount": 10,
@@ -60,8 +62,7 @@
 				"source": [
 					"# Create an unmanaged (external) table backed by Parquet in Spark and query from serverless SQL pool\r\n",
 					"In this example, create an external Spark table over existing Parquet data files"
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -80,7 +81,6 @@
 				"source": [
 					"DROP TABLE IF EXISTS Orders.OrdersByState"
 				],
-				"attachments": null,
 				"execution_count": 7
 			},
 			{
@@ -100,7 +100,6 @@
 				"source": [
 					"DROP DATABASE IF EXISTS Orders"
 				],
-				"attachments": null,
 				"execution_count": 5
 			},
 			{
@@ -111,7 +110,6 @@
 				"source": [
 					"CREATE DATABASE IF NOT EXISTS Orders"
 				],
-				"attachments": null,
 				"execution_count": 8
 			},
 			{
@@ -131,7 +129,6 @@
 				"source": [
 					"DROP TABLE IF EXISTS Orders.OrdersByState"
 				],
-				"attachments": null,
 				"execution_count": 15
 			},
 			{
@@ -155,7 +152,6 @@
 					"  LOCATION 'abfss://curateddata@synapse580.dfs.core.windows.net/orders/OrdersByState/'\r\n",
 					"  OPTIONS ('compression'='snappy')"
 				],
-				"attachments": null,
 				"execution_count": 9
 			},
 			{
@@ -175,7 +171,6 @@
 				"source": [
 					"SELECT * FROM Orders.OrdersByState"
 				],
-				"attachments": null,
 				"execution_count": 10
 			}
 		]

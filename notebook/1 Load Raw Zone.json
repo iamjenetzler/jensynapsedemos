@@ -1,0 +1,157 @@
+{
+	"name": "1 Load Raw Zone",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "sparkpool1",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "d7fe8490-aa36-44f3-a3a6-0bf365108fb4"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"synapse_widget": {
+				"version": "0.1"
+			},
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/b9913441-8a8e-4fb1-812a-9fcbe1dd9aba/resourceGroups/synapsehack/providers/Microsoft.Synapse/workspaces/synapsehackws/bigDataPools/sparkpool1",
+				"name": "sparkpool1",
+				"type": "Spark",
+				"endpoint": "https://synapsehackws.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/sparkpool1",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net",
+					"authHeader": null
+				},
+				"sparkVersion": "3.1",
+				"nodeCount": 10,
+				"cores": 16,
+				"memory": 112
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## Mount remote storage to a Synapse Spark pool\r\n",
+					"https://docs.microsoft.com/en-us/azure/synapse-analytics/spark/synapse-file-mount-api"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"#mount storage via linked service\r\n",
+					"from notebookutils import mssparkutils\r\n",
+					"\r\n",
+					"#unmount /mnt_ls if already mounted\r\n",
+					"if any(mount.mountPoint == \"/mnt_ls\" for mount in mssparkutils.fs.mounts()):\r\n",
+					"    mssparkutils.fs.unmount(\"/mnt_ls\")\r\n",
+					"\r\n",
+					"mssparkutils.fs.mount( \r\n",
+					"    \"wasbs://tpcds100gb@csejohoangsynapseadls.blob.core.windows.net\", \r\n",
+					"    \"/mnt_ls\", \r\n",
+					"    {\"linkedService\":\"csejohoangsynapseadls\"} \r\n",
+					")"
+				],
+				"execution_count": 1
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"#access files under mount point using mssparktuils fs API\r\n",
+					"jobId = mssparkutils.env.getJobId() \r\n",
+					"# print(jobId)\r\n",
+					"folderPath = \"synfs:/\" + jobId + \"/mnt_ls/\"\r\n",
+					"print(folderPath)\r\n",
+					"\r\n",
+					"mssparkutils.fs.ls(folderPath)"
+				],
+				"execution_count": 2
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## Copy mounted files to raw zone"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"mssparkutils.fs.rm('abfss://raw@synapsehackstor.dfs.core.windows.net/mnt_ls', True) # delete the directory to empty it\r\n",
+					"mssparkutils.fs.cp(folderPath, 'abfss://raw@synapsehackstor.dfs.core.windows.net', True) # Set the third parameter as True to copy all files and directories recursively\r\n",
+					""
+				],
+				"execution_count": 3
+			}
+		]
+	}
+}

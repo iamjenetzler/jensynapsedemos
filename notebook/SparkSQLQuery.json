@@ -1,0 +1,403 @@
+{
+	"name": "SparkSQLQuery",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "sparkpool1",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "112g",
+			"driverCores": 16,
+			"executorMemory": "112g",
+			"executorCores": 16,
+			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "c6ad51c6-f70e-4ddd-8dc4-3f65ed08d035"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"synapse_widget": {
+				"version": "0.1"
+			},
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/b9913441-8a8e-4fb1-812a-9fcbe1dd9aba/resourceGroups/synapsehack/providers/Microsoft.Synapse/workspaces/synapsehackws/bigDataPools/sparkpool1",
+				"name": "sparkpool1",
+				"type": "Spark",
+				"endpoint": "https://synapsehackws.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/sparkpool1",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net",
+					"authHeader": null
+				},
+				"sparkVersion": "3.1",
+				"nodeCount": 10,
+				"cores": 16,
+				"memory": 112,
+				"extraHeader": null
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "code",
+				"metadata": {
+					"microsoft": {
+						"language": "scala"
+					}
+				},
+				"source": [
+					"%%spark\r\n",
+					"// val dfProduct = spark.read.synapsesql(\"dedicatedsqlpool.cso.DimProduct\")\r\n",
+					"// dfProduct.write.mode(\"overwrite\").format(\"delta\").save(\"/data/contoso/DimProduct/\")"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"microsoft": {
+						"language": "scala"
+					}
+				},
+				"source": [
+					"%%spark\r\n",
+					"// import org.apache.spark.sql.functions._\r\n",
+					"// val dfFactOnlineSales = spark.read.synapsesql(\"dedicatedsqlpool.cso.FactOnlineSales\")\r\n",
+					"// val dfFactOnlineSales1 = dfFactOnlineSales.withColumn(\"SaleYear\", year(dfFactOnlineSales(\"DateKey\")))\r\n",
+					"// dfFactOnlineSales1.write.mode(\"overwrite\").format(\"delta\").partitionBy(\"SaleYear\").save(\"/data/contoso/FactOnlineSales/\")"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"df = spark.read.format(\"delta\").load(\"abfss://curated@synapsehackstor.dfs.core.windows.net/catalog_sales\") #(\"/data/contoso/DimProduct/\")\r\n",
+					"df.createOrReplaceTempView(\"catalog_sales\")\r\n",
+					" \r\n",
+					"df = spark.read.format(\"delta\").load(\"abfss://curated@synapsehackstor.dfs.core.windows.net/customer\") #(\"/data/contoso/DimProduct/\")\r\n",
+					"df.createOrReplaceTempView(\"customer\")\r\n",
+					" \r\n",
+					"df = spark.read.format(\"delta\").load(\"abfss://curated@synapsehackstor.dfs.core.windows.net/customer_address\") #(\"/data/contoso/DimProduct/\")\r\n",
+					"df.createOrReplaceTempView(\"customer_address\")\r\n",
+					" \r\n",
+					"df = spark.read.format(\"delta\").load(\"abfss://curated@synapsehackstor.dfs.core.windows.net/date_dim\") #(\"/data/contoso/DimProduct/\")\r\n",
+					"df.createOrReplaceTempView(\"date_dim\")\r\n",
+					" \r\n",
+					"df = spark.read.format(\"delta\").load(\"abfss://curated@synapsehackstor.dfs.core.windows.net/call_center\") #(\"/data/contoso/DimProduct/\")\r\n",
+					"df.createOrReplaceTempView(\"call_center\")\r\n",
+					"\r\n",
+					"df = spark.read.format(\"delta\").load(\"abfss://curated@synapsehackstor.dfs.core.windows.net/catalog_returns\") #(\"/data/contoso/DimProduct/\")\r\n",
+					"df.createOrReplaceTempView(\"catalog_returns\")\r\n",
+					"\r\n",
+					"#dfFactOnlineSales = spark.read.format(\"delta\").load(\"/data/contoso/FactOnlineSales/\")\r\n",
+					"#dfFactOnlineSales.createOrReplaceTempView(\"FactOnlineSales\")"
+				],
+				"execution_count": 21
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"dfJoinedSale = dfProduct.join(dfFactOnlineSales, dfProduct.ProductKey == dfFactOnlineSales.ProductKey) \r\n",
+					"dfJoinedSale = dfJoinedSale.filter(dfJoinedSale.SaleYear == 2009)\r\n",
+					"# display(dfJoinedSale)\r\n",
+					"\r\n",
+					"dfJoinedSale.explain() # only physical plan\r\n",
+					"# dfJoinedSale.explain(True) # all plans including logical and physical plan"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"dfAggregatedSale = dfJoinedSale.groupBy('BrandName').agg({'SalesAmount':'sum'})\r\n",
+					"\r\n",
+					"dfAggregatedSale.explain()\r\n",
+					"\r\n",
+					"# display(dfAggregatedSale)"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": true
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"microsoft": {
+						"language": "sparksql"
+					},
+					"collapsed": false
+				},
+				"source": [
+					"%%sql\r\n",
+					"\r\n",
+					"select * from date_dim"
+				],
+				"execution_count": 24
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": true
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"microsoft": {
+						"language": "sparksql"
+					},
+					"collapsed": false
+				},
+				"source": [
+					"%%sql\r\n",
+					"\r\n",
+					"select ca_zip\r\n",
+					"       ,sum(cs_sales_price) as cs_sales_price\r\n",
+					" from catalog_sales\r\n",
+					"     ,customer\r\n",
+					"     ,customer_address\r\n",
+					"     ,date_dim\r\n",
+					" where cs_bill_customer_sk = c_customer_sk\r\n",
+					" \tand c_current_addr_sk = ca_address_sk \r\n",
+					" \tand ( substring(ca_zip,1,5) in ('85669', '86197','88274','83405','86475',\r\n",
+					"                                   '85392', '85460', '80348', '81792')\r\n",
+					" \t      or ca_state in ('CA','WA','GA')\r\n",
+					" \t      or cs_sales_price > 500)\r\n",
+					" \tand cs_sold_date_sk = d_date_sk\r\n",
+					" \tand d_qoy = 2 and d_year = 1999\r\n",
+					" group by ca_zip\r\n",
+					" order by ca_zip \r\n",
+					" limit 100;\r\n",
+					"\r\n",
+					""
+				],
+				"execution_count": 17
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"microsoft": {
+						"language": "sparksql"
+					},
+					"collapsed": false
+				},
+				"source": [
+					"%%sql\r\n",
+					"\r\n",
+					"select  \r\n",
+					"   count(distinct cs_order_number) as order_count\r\n",
+					"  ,sum(cs_ext_ship_cost) as total_shipping_cost\r\n",
+					"  ,sum(cs_net_profit) as total_net_profit\r\n",
+					"from\r\n",
+					"   catalog_sales cs1\r\n",
+					"  ,date_dim\r\n",
+					"  ,customer_address\r\n",
+					"  ,call_center\r\n",
+					"where\r\n",
+					"    d_date between '1999-03-01' and \r\n",
+					"\t\t   date_add(cast('1999-03-01' as date),60)\r\n",
+					"and cs1.cs_ship_date_sk = d_date_sk\r\n",
+					"and cs1.cs_ship_addr_sk = ca_address_sk\r\n",
+					"and ca_state = 'TX'\r\n",
+					"and cs1.cs_call_center_sk = cc_call_center_sk\r\n",
+					"and cc_county in ('Jefferson Davis Parish','Gage County','Sierra County','Pennington County',\r\n",
+					"                  'Wadena County'\r\n",
+					")\r\n",
+					"and exists (select *\r\n",
+					"            from catalog_sales cs2\r\n",
+					"            where cs1.cs_order_number = cs2.cs_order_number\r\n",
+					"              and cs1.cs_warehouse_sk <> cs2.cs_warehouse_sk)\r\n",
+					"and not exists (select *\r\n",
+					"               from catalog_returns cr1\r\n",
+					"               where cs1.cs_order_number = cr1.cr_order_number)\r\n",
+					"order by count(distinct cs_order_number)\r\n",
+					"limit 100;"
+				],
+				"execution_count": 28
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"microsoft": {
+						"language": "sparksql"
+					},
+					"collapsed": false
+				},
+				"source": [
+					"%%sql\r\n",
+					"EXPLAIN\r\n",
+					"SELECT  SUM(f.SalesAmount) AS sales_by_brand_amount\r\n",
+					",       p.BrandName\r\n",
+					"FROM    FactOnlineSales AS f\r\n",
+					"JOIN    DimProduct      AS p ON f.ProductKey = p.ProductKey\r\n",
+					"GROUP BY p.BrandName"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"print(spark.conf.get(\"spark.sql.autoBroadcastJoinThreshold\")) # 26214400 - 26 MB\r\n",
+					"\r\n",
+					"# df1.join(broadcast(df2), Seq(\"id\")).explain #broadcast join hint"
+				],
+				"execution_count": 11
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Adaptive Query Execution https://spark.apache.org/docs/latest/sql-performance-tuning.html#adaptive-query-execution\r\n",
+					"print(spark.conf.get(\"spark.sql.adaptive.enabled\"))"
+				],
+				"execution_count": 12
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"microsoft": {
+						"language": "sparksql"
+					},
+					"collapsed": false
+				},
+				"source": [
+					"%%sql\r\n",
+					"SELECT  SUM(f.SalesAmount) AS sales_by_brand_amount\r\n",
+					",       p.BrandName\r\n",
+					"FROM    FactOnlineSales AS f\r\n",
+					"JOIN    DimProduct      AS p ON f.ProductKey = p.ProductKey\r\n",
+					"GROUP BY p.BrandName"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					""
+				]
+			}
+		]
+	}
+}

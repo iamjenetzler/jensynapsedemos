@@ -12,7 +12,8 @@
 			"driverCores": 8,
 			"executorMemory": "56g",
 			"executorCores": 8,
-			"numExecutors": 2
+			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false
 		},
 		"metadata": {
 			"kernelspec": {
@@ -29,12 +30,14 @@
 				"endpoint": "https://synapse580.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/sparkpool2",
 				"auth": {
 					"type": "AAD",
-					"authResource": "https://dev.azuresynapse.net"
+					"authResource": "https://dev.azuresynapse.net",
+					"authHeader": null
 				},
 				"sparkVersion": "2.4",
 				"nodeCount": 3,
 				"cores": 8,
-				"memory": 56
+				"memory": 56,
+				"extraHeader": null
 			},
 			"sessionKeepAliveTimeout": 30
 		},
@@ -57,8 +60,7 @@
 					"\n",
 					">**Did you know?**  Spark tables created on top of Azure Cosmos DB Collections are metadata tables, passing the queries to the corresponding collections.\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "markdown",
@@ -69,8 +71,7 @@
 					">**Did you know?**  The Cosmos DB Linked Service in Synapse abstracts the connection configs for the Azure Cosmos DB Database. \n",
 					"\n",
 					">[Click here](https://review.docs.microsoft.com/en-us/azure/synapse-analytics/synapse-link/how-to-connect-synapse-link-cosmos-db?branch=release-build-synapse#connect-an-azure-cosmos-db-database-to-a-synapse-workspace) to learn how to setup a Linked Service to connect Azure Cosmos DB database to the Azure Synapse workspace"
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -101,7 +102,6 @@
 					"%%sql\n",
 					"create database if not exists CosmosDBIoTDemo"
 				],
-				"attachments": null,
 				"execution_count": 6
 			},
 			{
@@ -138,7 +138,6 @@
 					"        spark.cosmos.container 'IoTSignals')\n",
 					""
 				],
-				"attachments": null,
 				"execution_count": 2
 			},
 			{
@@ -175,7 +174,6 @@
 					"        spark.cosmos.container 'IoTDeviceInfo')\n",
 					""
 				],
-				"attachments": null,
 				"execution_count": 4
 			},
 			{
@@ -188,8 +186,7 @@
 					">**Did you know?**  Cosmos DB Analytical store uses columnar storage and is optimized for large-scale analytics workloads.\n",
 					"\n",
 					">**Did you know?**  Cosmos DB analytical store follows a cost effective consumption-based pricing model, which is based on data storage and analytical read/write operationsand queries executed and doesn?t require you to provision any throughput."
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -209,7 +206,6 @@
 					"                            where a.unitSymbol = 'RPM' \\\n",
 					"                            group by a.deviceid, b.devicetype, b.location, b.latitude, b.longitude, a.measuretype, a.unitSymbol\")"
 				],
-				"attachments": null,
 				"execution_count": 4
 			},
 			{
@@ -217,8 +213,7 @@
 				"source": [
 					"### View or chart the result-set using display() function\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -253,7 +248,6 @@
 				"source": [
 					"display(df_RPM_details)"
 				],
-				"attachments": null,
 				"execution_count": 5
 			},
 			{
@@ -261,8 +255,7 @@
 				"source": [
 					"### 3. Visualizations using plotly and displayHTML()\n",
 					"The below shows a heatmap of IoT signals across diffrent locations"
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -290,7 +283,6 @@
 					"p = plot(fig,output_type='div')\n",
 					"displayHTML(p)       "
 				],
-				"attachments": null,
 				"execution_count": 6
 			},
 			{
@@ -298,8 +290,7 @@
 				"source": [
 					"<img src=\"https://revin.blob.core.windows.net/synapselinknotebooks/RPMHeatmap.PNG\" width=\"1400\" style=\"float: center;\"/>\n",
 					""
-				],
-				"attachments": null
+				]
 			}
 		]
 	}

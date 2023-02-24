@@ -1,0 +1,369 @@
+{
+	"name": "Configuration-Mounting_1",
+	"properties": {
+		"folder": {
+			"name": "2 - Spark pool"
+		},
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "44df49ae-848e-4e07-b072-27d394b5daf9"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"synapse_widget": {
+				"version": "0.1"
+			},
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## Dynamic allocation of executors for Spark"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"print(spark.conf.get(\"spark.executor.instances\"))\r\n",
+					"print(spark.conf.get(\"spark.executor.cores\"))\r\n",
+					"print(spark.conf.get(\"spark.executor.memory\"))"
+				],
+				"execution_count": 2
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"Note: If you request more number of vcores than  pool limit or available vcores in the pool, you will get an exception. Try reducing the numbers of vcores requested or increasing your pool size."
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"%%configure -f \r\n",
+					"{\r\n",
+					"    \"numExecutors\": 2, \r\n",
+					"    \"executorCores\": 4,\r\n",
+					"    \"executorMemory\": \"28g\"\r\n",
+					"}"
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"https://docs.microsoft.com/en-us/azure/synapse-analytics/spark/apache-spark-autoscale#get-started"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"%%configure -f\r\n",
+					"    {\r\n",
+					"        \"conf\" : {\r\n",
+					"            \"spark.dynamicAllocation.enable\": \"true\",\r\n",
+					"            \"spark.dynamicAllocation.minExecutors\": \"2\",\r\n",
+					"            \"spark.dynamicAllocation.maxExecutors\" : \"6\"                        \r\n",
+					"     }\r\n",
+					"    }"
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## Mount remote storage to a Synapse Spark pool"
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"from notebookutils import mssparkutils\r\n",
+					"\r\n",
+					"mssparkutils.fs.mount( \r\n",
+					"    \"abfss://container@storage.dfs.core.windows.net\", \r\n",
+					"    \"/mnt_ls\", \r\n",
+					"    {\"linkedService\":\"storagels\"} \r\n",
+					")"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"from notebookutils import mssparkutils  \r\n",
+					"\r\n",
+					"accountKey = mssparkutils.credentials.getSecret(\"akvintellplat\",\"storagekey\")  \r\n",
+					"mssparkutils.fs.mount(  \r\n",
+					"    \"abfss://container@storage.dfs.core.windows.net\",  \r\n",
+					"    \"/mnt_key\",  \r\n",
+					"    {\"accountKey\":accountKey}\r\n",
+					")"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"from notebookutils import mssparkutils  \r\n",
+					"\r\n",
+					"sasToken = mssparkutils.credentials.getSecret(\"akvintellplat\",\"storagesas\")  \r\n",
+					"mssparkutils.fs.mount(  \r\n",
+					"    \"abfss://container@storage.dfs.core.windows.net\",  \r\n",
+					"    \"/mnt_sas\",  \r\n",
+					"    {\"sasToken\":sasToken}\r\n",
+					")"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"jobId = mssparkutils.env.getJobId() \r\n",
+					"# print(jobId)\r\n",
+					"folderPath = \"synfs:/\" + jobId + \"/mnt_ls/\"\r\n",
+					"print(folderPath)\r\n",
+					"mssparkutils.fs.ls(folderPath)"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"newFolderPath = \"synfs:/\" + jobId + \"/mnt_sas/newFolderPath\"\r\n",
+					"mssparkutils.fs.mkdirs(newFolderPath)\r\n",
+					"mssparkutils.fs.ls(folderPath)"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# jobId = mssparkutils.env.getJobId() \r\n",
+					"f = open(f\"/synfs/{jobId}/mnt_sas/newFolderPath/myFile.txt\", \"w\") \r\n",
+					"f.write(\"Hello world.\") \r\n",
+					"f.close()"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"filePath = \"synfs:/\" + jobId + \"/mnt_sas/newFolderPath/myFile.txt\"\r\n",
+					"mssparkutils.fs.head(filePath)"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"df = spark.read.text(filePath)\r\n",
+					"df.show()"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"mssparkutils.fs.unmount(\"/mnt_ls\")\r\n",
+					"mssparkutils.fs.unmount(\"/mnt_key\")\r\n",
+					"mssparkutils.fs.unmount(\"/mnt_sas\")"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Documentation is not yet available but you can look at signature\r\n",
+					"help(mssparkutils.fs)"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					""
+				]
+			}
+		]
+	}
+}

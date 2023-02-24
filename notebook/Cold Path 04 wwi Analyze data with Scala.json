@@ -12,7 +12,8 @@
 			"driverCores": 4,
 			"executorMemory": "28g",
 			"executorCores": 4,
-			"numExecutors": 2
+			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false
 		},
 		"metadata": {
 			"kernelspec": {
@@ -29,12 +30,14 @@
 				"endpoint": "https://synapse580.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/sparkpool1",
 				"auth": {
 					"type": "AAD",
-					"authResource": "https://dev.azuresynapse.net"
+					"authResource": "https://dev.azuresynapse.net",
+					"authHeader": null
 				},
 				"sparkVersion": "2.4",
 				"nodeCount": 10,
 				"cores": 8,
-				"memory": 56
+				"memory": 56,
+				"extraHeader": null
 			},
 			"sessionKeepAliveTimeout": 30
 		},
@@ -44,8 +47,7 @@
 				"source": [
 					"## Read Data From SQL Pool\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -54,7 +56,6 @@
 					"val df_FactOrder = spark.read.sqlanalytics(\"SQLPool1.wwi.FactOrder\")\n",
 					" // df.show(10)"
 				],
-				"attachments": null,
 				"execution_count": 9
 			},
 			{
@@ -74,7 +75,6 @@
 				"source": [
 					"df_City.show(10)"
 				],
-				"attachments": null,
 				"execution_count": 15
 			},
 			{
@@ -83,7 +83,6 @@
 					"df_City.createOrReplaceTempView(\"city\")\n",
 					"df_FactOrder.createOrReplaceTempView(\"factOrder\")"
 				],
-				"attachments": null,
 				"execution_count": 16
 			},
 			{
@@ -91,15 +90,13 @@
 				"source": [
 					"## Data Exploration and Analysis\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
 				"source": [
 					"val df = spark.sql(\"select * from factOrder\")"
 				],
-				"attachments": null,
 				"execution_count": 17
 			},
 			{
@@ -107,8 +104,7 @@
 				"source": [
 					"## Use of Magic commands\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -143,7 +139,6 @@
 					"%%sql \n",
 					"SELECT * FROM city"
 				],
-				"attachments": null,
 				"execution_count": 18
 			},
 			{
@@ -151,8 +146,7 @@
 				"source": [
 					"## Join Data\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -188,7 +182,6 @@
 					"                    order by SUM(Quantity) desc \"\"\"))\n",
 					"display(df.limit(10))"
 				],
-				"attachments": null,
 				"execution_count": 19
 			},
 			{
@@ -196,8 +189,7 @@
 				"source": [
 					"## Write result to ADLS Gen2 in Parquet format\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -214,7 +206,6 @@
 					"\n",
 					"// Use SQL OD to query the data in ADLS"
 				],
-				"attachments": null,
 				"execution_count": 20
 			}
 		]

@@ -1,0 +1,430 @@
+{
+	"name": "DeltaLakeOptimize",
+	"properties": {
+		"folder": {
+			"name": "2 - Spark pool"
+		},
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "d4388e39-8cab-40b1-8ad5-02ee2e185ec5"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"synapse_widget": {
+				"version": "0.1"
+			},
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_spark",
+				"display_name": "scala"
+			},
+			"language_info": {
+				"name": "scala"
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Delta Lake OPTIMIZE"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": true
+				},
+				"source": [
+					"val sessionId = scala.util.Random.nextInt(1000000)\r\n",
+					"val dataPath = s\"/deltaoptimizetest/data-$sessionId\";\r\n",
+					"\r\n",
+					"val numFiles = 1000"
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"### Data preparation"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": true
+				},
+				"source": [
+					"spark.range(50000000).map { _ =>\r\n",
+					"    (scala.util.Random.nextInt(10000000).toLong, scala.util.Random.nextInt(1000000000), scala.util.Random.nextInt(2))\r\n",
+					"}.toDF(\"colA\", \"colB\", \"colC\").repartition(numFiles).write.mode(\"overwrite\").format(\"delta\").partitionBy(\"colC\").save(dataPath)\r\n",
+					"\r\n",
+					"// 50M rows with random integers stored in numFiles * 2 parquet files in colC=0, colC=1 partition"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"// spark.conf.get(\"spark.databricks.delta.optimize.maxFileSize\")\r\n",
+					"spark.conf.get(\"spark.executor.instances\")"
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"### Optimize dataset\r\n",
+					"\r\n",
+					"Optimize will compact small target files into larger files.\r\n",
+					"Target files are\r\n",
+					"- smaller than `spark.databricks.delta.optimize.maxFileSize` (default 1GB) AND\r\n",
+					"- under the corresponding partitions if partition filter condition is specified.\r\n",
+					"\r\n",
+					"Optimize won't optimize the target files if\r\n",
+					"- only one file in the partition\r\n",
+					"- no candidate for compaction e.g. 2 files of 700MB & maxFileSize=1GB\r\n",
+					""
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"val dt = io.delta.tables.DeltaTable.forPath(dataPath)\r\n",
+					"\r\n",
+					"// optimize API supports filter condition for partitioned columns. Below will optimize the files under \"colC=1\" only.\r\n",
+					"dt.optimize(\"colC = 1\").show\r\n",
+					"// optimize API returns statistics in Dataframe"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"// optimize all files\r\n",
+					"dt.optimize().show"
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"### Check performance without optimize"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": true
+				},
+				"source": [
+					"def measure(f : => Unit) {\r\n",
+					"    val start = System.nanoTime\r\n",
+					"    f\r\n",
+					"    val durationInMS = (System.nanoTime - start) / 1000 / 1000\r\n",
+					"    println(\"duration(ms): \" + durationInMS )\r\n",
+					"}"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": true
+				},
+				"source": [
+					"// Use version 0 for non-optimized data\r\n",
+					"val df = spark.read.format(\"delta\").option(\"versionAsOf\", \"0\").load(dataPath)\r\n",
+					"val agg = df.agg(avg(\"colA\"))\r\n",
+					"measure(println(agg.collect))"
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"### Check performance after optimize"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": true
+				},
+				"source": [
+					"// Use the latest version for optimized data\r\n",
+					"val df = spark.read.format(\"delta\").load(dataPath)\r\n",
+					"val agg = df.agg(avg(\"colA\"))\r\n",
+					"measure(println(agg.collect))"
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"### Spark SQL support\r\n",
+					"\r\n",
+					"Note: partition filter condition does not support in Spark SQL yet."
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"// This won't optimize anything since the table is already optimized.\r\n",
+					"spark.sql(s\"OPTIMIZE delta.`$dataPath`\").show"
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"### zOrder - Example"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"spark.sql(s\"OPTIMIZE delta.`$dataPath` ZORDER BY (ColA)\").show"
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"### Temp Area"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"microsoft": {
+						"language": "python"
+					},
+					"collapsed": false
+				},
+				"source": [
+					"%%pyspark\r\n",
+					"from delta.tables import *\r\n",
+					"dt = DeltaTable.forPath(spark, '/deltaoptimizetest/data-246486')\r\n",
+					"display(dt.optimize(condition = \"colC = 1\"))\r\n",
+					"\r\n",
+					"# display(dt.optimize(condition = \"colC = 1\", zOrderBy = \"colA\"))\r\n",
+					"# help(dt.optimize)"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"spark.sql(s\"CREATE TABLE sampledata USING DELTA LOCATION '$dataPath'\")"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"microsoft": {
+						"language": "sparksql"
+					},
+					"collapsed": false
+				},
+				"source": [
+					"%%sql\r\n",
+					"OPTIMIZE sampledata ZORDER BY (ColA)"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					""
+				]
+			}
+		]
+	}
+}

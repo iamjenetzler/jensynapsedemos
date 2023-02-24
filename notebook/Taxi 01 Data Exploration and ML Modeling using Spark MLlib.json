@@ -12,7 +12,8 @@
 			"driverCores": 8,
 			"executorMemory": "56g",
 			"executorCores": 8,
-			"numExecutors": 2
+			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false
 		},
 		"metadata": {
 			"kernelspec": {
@@ -29,12 +30,14 @@
 				"endpoint": "https://synapse580.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/sparkpool1",
 				"auth": {
 					"type": "AAD",
-					"authResource": "https://dev.azuresynapse.net"
+					"authResource": "https://dev.azuresynapse.net",
+					"authHeader": null
 				},
 				"sparkVersion": "2.4",
 				"nodeCount": 10,
 				"cores": 8,
-				"memory": 56
+				"memory": 56,
+				"extraHeader": null
 			},
 			"sessionKeepAliveTimeout": 30
 		},
@@ -47,8 +50,7 @@
 					"The notebook ingests, visualizes, prepares and then trains a model based on an Open Dataset that tracks NYC Yellow Taxi trips and various attributes around them.\n",
 					"The goal is to predict for a given trip whether there will be a trip or not.\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -69,7 +71,6 @@
 					"from pyspark.mllib.evaluation import BinaryClassificationMetrics\n",
 					"from pyspark.ml.evaluation import BinaryClassificationEvaluator"
 				],
-				"attachments": null,
 				"execution_count": 1
 			},
 			{
@@ -78,8 +79,7 @@
 					"## Ingest Data? \n",
 					"\n",
 					"Get a sample data of nyc yellow taxi to make it faster/easier to evaluate different approaches to prep for the modelling phase later in the notebook."
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -96,7 +96,6 @@
 					"nyc_tlc = NycTlcYellow(start_date=start_date, end_date=end_date)\n",
 					"nyc_tlc_df = nyc_tlc.to_spark_dataframe()"
 				],
-				"attachments": null,
 				"execution_count": 7
 			},
 			{
@@ -105,7 +104,6 @@
 					"#To make development easier, faster and less expensive downsample for now\n",
 					"sampled_taxi_df = nyc_tlc_df.sample(True, 0.001, seed=1234)"
 				],
-				"attachments": null,
 				"execution_count": 8
 			},
 			{
@@ -114,8 +112,7 @@
 					"## Exploratory Data Analysis\n",
 					"\n",
 					"Look at the data and evaluate its suitability for use in a model, do this via some basic charts focussed on tip values and relationships."
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -148,7 +145,6 @@
 					"plt.suptitle('')\n",
 					"plt.show()"
 				],
-				"attachments": null,
 				"execution_count": 9
 			},
 			{
@@ -160,8 +156,7 @@
 					"\n",
 					"Finally there is a need to create some new (derived) variables that will work better with the model.\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -182,7 +177,6 @@
 					"                                & (sampled_taxi_df.paymentType.isin({\"1\", \"2\"}))\n",
 					"                                )"
 				],
-				"attachments": null,
 				"execution_count": 10
 			},
 			{
@@ -194,8 +188,7 @@
 					"\n",
 					"Also create some more features based on new columns from the first round.\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -210,7 +203,6 @@
 					"                                              )\\\n",
 					"                                       .filter((taxi_df.tripTimeSecs >= 30) & (taxi_df.tripTimeSecs <= 7200))"
 				],
-				"attachments": null,
 				"execution_count": 11
 			},
 			{
@@ -224,8 +216,7 @@
 					"\n",
 					"This approach requires the encoder to \"learn\"/fit a model over the data in the Spark instance and then transform based on what was learnt.\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -239,7 +230,6 @@
 					"# Create a new dataframe that has had the encodings applied\n",
 					"encoded_final_df = Pipeline(stages=[sI1, en1, sI2, en2]).fit(taxi_featurised_df).transform(taxi_featurised_df)"
 				],
-				"attachments": null,
 				"execution_count": 12
 			},
 			{
@@ -248,8 +238,7 @@
 					"## Generation of Testing and Training Data Sets\n",
 					"Simple split, 70% for training and 30% for testing the model. Playing with this ratio may result in different models.\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -262,7 +251,6 @@
 					"# Split the dataframe into test and training dataframes\n",
 					"train_data_df, test_data_df = encoded_final_df.randomSplit([trainingFraction, testingFraction], seed=seed)"
 				],
-				"attachments": null,
 				"execution_count": 13
 			},
 			{
@@ -271,8 +259,7 @@
 					"## Train the Model\n",
 					"\n",
 					"Train the Logistic Regression model and then evaluate it using Area under ROC as the metric."
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -298,7 +285,6 @@
 					"metrics = BinaryClassificationMetrics(predictionAndLabels)\n",
 					"print(\"Area under ROC = %s\" % metrics.areaUnderROC)"
 				],
-				"attachments": null,
 				"execution_count": 14
 			},
 			{
@@ -308,8 +294,7 @@
 					"\n",
 					"Plot the actual curve to develop a better understanding of the model.\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -324,7 +309,6 @@
 					"plt.ylabel('True Positive Rate')\n",
 					"plt.show()"
 				],
-				"attachments": null,
 				"execution_count": 15
 			}
 		]

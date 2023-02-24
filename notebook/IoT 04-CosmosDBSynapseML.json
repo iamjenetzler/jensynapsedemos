@@ -12,7 +12,8 @@
 			"driverCores": 8,
 			"executorMemory": "56g",
 			"executorCores": 8,
-			"numExecutors": 2
+			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false
 		},
 		"metadata": {
 			"kernelspec": {
@@ -29,12 +30,14 @@
 				"endpoint": "https://synapse580.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/sparkpool2",
 				"auth": {
 					"type": "AAD",
-					"authResource": "https://dev.azuresynapse.net"
+					"authResource": "https://dev.azuresynapse.net",
+					"authHeader": null
 				},
 				"sparkVersion": "2.4",
 				"nodeCount": 3,
 				"cores": 8,
-				"memory": 56
+				"memory": 56,
+				"extraHeader": null
 			},
 			"sessionKeepAliveTimeout": 30
 		},
@@ -59,8 +62,7 @@
 					"\n",
 					">**Did you know?**  [MMLSpark](https://github.com/Azure/mmlspark) (Azure Cognitive Services on Spark) is an ecosystem of tools making use of the  distributed computing capability of Apache Spark and includes seamless integration of Spark Machine Learning pipelines with Microsoft Cognitive Toolkit (CNTK), LightGBM and OpenCV.\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "markdown",
@@ -70,8 +72,7 @@
 					"\n",
 					">**Did you know?**  To select a preferred list of regions in a multi-region Cosmos DB account, add .option(\"spark.cosmos.preferredRegions\", \"<Region1>,<Region2>\"). \n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -82,7 +83,6 @@
 					"                    .option(\"spark.cosmos.container\", \"IoTSignals\")\\\n",
 					"                    .load()"
 				],
-				"attachments": null,
 				"execution_count": 8
 			},
 			{
@@ -90,8 +90,7 @@
 				"source": [
 					"### 2. Data exploration using pyplot\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -112,15 +111,13 @@
 					"plt.title('RPM TimeSeries')\n",
 					"plt.show()"
 				],
-				"attachments": null,
 				"execution_count": 5
 			},
 			{
 				"cell_type": "markdown",
 				"source": [
 					"<img src=\"https://revin.blob.core.windows.net/synapselinknotebooks/MWRPMSeries.PNG\" width=\"1400\" style=\"float: center;\"/>"
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "markdown",
@@ -131,8 +128,7 @@
 					"* [Click here](https://mmlspark.blob.core.windows.net/docs/1.0.0-rc1/pyspark/mmlspark.cognitive.html#module-mmlspark.cognitive.SimpleDetectAnomalies) to learn more about the parameters used in SimpleDetectAnomalies modeule\n",
 					"* [Click here](https://docs.microsoft.com/en-us/python/api/azure-cognitiveservices-anomalydetector/azure.cognitiveservices.anomalydetector.models.entiredetectresponse?view=azure-python) to learn more about the response class from anomalydetector \n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -160,7 +156,6 @@
 					"df_anomaly.createOrReplaceTempView('df_anomaly')\n",
 					""
 				],
-				"attachments": null,
 				"execution_count": 6
 			},
 			{
@@ -168,8 +163,7 @@
 				"source": [
 					"### 4a. Format the dataframe for visualization\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -211,7 +205,6 @@
 					"\n",
 					"display(df_anomaly_single_device)    "
 				],
-				"attachments": null,
 				"execution_count": 7
 			},
 			{
@@ -220,8 +213,7 @@
 					"### 4b. Visualize the anomalies using plotly\n",
 					"* Plot Expected value, Upper Value, Lower Value and Actual Value along with Anomaly flag\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -246,7 +238,6 @@
 					"plt.title('RPM Anomalies with Expected, Actual, Upper and Lower Values')\n",
 					"plt.show()"
 				],
-				"attachments": null,
 				"execution_count": 8
 			},
 			{
@@ -254,8 +245,7 @@
 				"source": [
 					"<img src=\"https://revin.blob.core.windows.net/synapselinknotebooks/RPMAnomaly.PNG\" width=\"1800\" style=\"float: center;\"/>\n",
 					""
-				],
-				"attachments": null
+				]
 			}
 		]
 	}

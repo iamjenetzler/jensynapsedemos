@@ -12,7 +12,8 @@
 			"driverCores": 8,
 			"executorMemory": "56g",
 			"executorCores": 8,
-			"numExecutors": 2
+			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false
 		},
 		"metadata": {
 			"kernelspec": {
@@ -29,12 +30,14 @@
 				"endpoint": "https://synapse580.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/sparkpool3",
 				"auth": {
 					"type": "AAD",
-					"authResource": "https://dev.azuresynapse.net"
+					"authResource": "https://dev.azuresynapse.net",
+					"authHeader": null
 				},
 				"sparkVersion": "2.4",
 				"nodeCount": 3,
 				"cores": 8,
-				"memory": 56
+				"memory": 56,
+				"extraHeader": null
 			},
 			"sessionKeepAliveTimeout": 30
 		},
@@ -44,8 +47,7 @@
 				"source": [
 					"# Using Linux foundation Delta Lake in Synapse Spark\n",
 					"In this notebook, how to read the delta table, how to write to delta table and timetravel is demonstrated"
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -67,7 +69,6 @@
 					"deltatablepath = adls_path + relative_delta_path + '/'\n",
 					"print('Delta Lake path: ' + deltatablepath)"
 				],
-				"attachments": null,
 				"execution_count": 7
 			},
 			{
@@ -76,8 +77,7 @@
 					"### Read data in csv format\n",
 					"\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -86,7 +86,6 @@
 					"csvhrdatadf = spark.read.option(\"header\",True).format(\"csv\").load(csvfilepath)\n",
 					"csvhrdatadf.show(10)"
 				],
-				"attachments": null,
 				"execution_count": 2
 			},
 			{
@@ -94,8 +93,7 @@
 				"source": [
 					"### Write data in delta format\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -105,7 +103,6 @@
 					"\r\n",
 					"csvhrdatadf.write.mode(\"overwrite\").format(\"delta\").partitionBy(\"Department\").save(deltatablepath)"
 				],
-				"attachments": null,
 				"execution_count": 3
 			},
 			{
@@ -115,7 +112,6 @@
 					"df_hr = spark.read.format(\"delta\").load(deltatablepath)\n",
 					"df_hr.show(10)"
 				],
-				"attachments": null,
 				"execution_count": 4
 			},
 			{
@@ -124,8 +120,7 @@
 					"### Add New Column YearsOfService\n",
 					"\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -136,7 +131,6 @@
 					"df_hr_service = df_hr.withColumn('YearsOfService',2020-f.year(f.to_timestamp('DateofHire', 'MM/dd/yyyy')))\n",
 					"df_hr_service.show(5)"
 				],
-				"attachments": null,
 				"execution_count": 6
 			},
 			{
@@ -144,8 +138,7 @@
 				"source": [
 					"### Overwrite the entire delta table\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -153,7 +146,6 @@
 					"# overwrite the delta table w/ mergeschema to have the schema change \r\n",
 					"df_hr_service.write.mode(\"overwrite\").format(\"delta\").partitionBy(\"Department\").option(\"mergeSchema\", True).save(deltatablepath)"
 				],
-				"attachments": null,
 				"execution_count": 8
 			},
 			{
@@ -161,8 +153,7 @@
 				"source": [
 					"### Validate delta table is updated with new column\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -171,7 +162,6 @@
 					"hrdataframe = spark.read.format(\"delta\").load(deltatablepath)\n",
 					"hrdataframe.show(10)"
 				],
-				"attachments": null,
 				"execution_count": 9
 			},
 			{
@@ -180,8 +170,7 @@
 					"### Check version with timetravel\n",
 					"\n",
 					"we can see here yearsOfService column is not present in original delta table"
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -195,7 +184,6 @@
 					"                    )\n",
 					"hrdataoriginal.show(10)"
 				],
-				"attachments": null,
 				"execution_count": 11
 			},
 			{
@@ -204,8 +192,7 @@
 					"### Update records that match the given condition \n",
 					"Lets update here PayRate for employees whose payroll is less than 20 to make it lowest payrate value above 20.\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -222,7 +209,6 @@
 					"deltaTable.toDF().filter(col(\"PayRate\")<minPayRateAbove20).count()\n",
 					""
 				],
-				"attachments": null,
 				"execution_count": 16
 			},
 			{
@@ -235,7 +221,6 @@
 					")\n",
 					"deltaTable.toDF().filter(col(\"PayRate\")<minPayRateAbove20).show()"
 				],
-				"attachments": null,
 				"execution_count": 17
 			},
 			{
@@ -244,8 +229,7 @@
 					"### Validate changes by filtering records on condition\n",
 					"Validate no employees have PayRate less than or equal to 20\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -254,7 +238,6 @@
 					"deltaTableAfterUpdate = DeltaTable.forPath(spark,deltatablepath)\n",
 					"deltaTableAfterUpdate.toDF().filter(col(\"PayRate\")<minPayRateAbove20).count()"
 				],
-				"attachments": null,
 				"execution_count": 18
 			},
 			{
@@ -263,8 +246,7 @@
 					"## Audit data changes\n",
 					"or Check Version history\n",
 					""
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -278,7 +260,6 @@
 					"lastOperationDF = deltaTable.history(1) # get the last operation\n",
 					"lastOperationDF.show()"
 				],
-				"attachments": null,
 				"execution_count": 28
 			},
 			{
@@ -286,8 +267,7 @@
 				"source": [
 					"### Undo changes for DeltaTable by restoring previous version\n",
 					"Lets set the PayRate as it was in previous version "
-				],
-				"attachments": null
+				]
 			},
 			{
 				"cell_type": "code",
@@ -311,7 +291,6 @@
 					"print(\"In latest version count of employees who have PayRate less than or equal to 20 are: %d\" % finalversion.filter(col(\"PayRate\")<minPayRateAbove20).count())\n",
 					"finalversion.show(10)"
 				],
-				"attachments": null,
 				"execution_count": 29
 			}
 		]

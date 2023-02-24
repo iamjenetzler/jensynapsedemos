@@ -1,0 +1,655 @@
+{
+	"name": "2 Load Enriched Zone",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "sparkpool1",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "b171b780-0c6f-4bd4-a835-4903ad516da3"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"synapse_widget": {
+				"version": "0.1"
+			},
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/b9913441-8a8e-4fb1-812a-9fcbe1dd9aba/resourceGroups/synapsehack/providers/Microsoft.Synapse/workspaces/synapsehackws/bigDataPools/sparkpool1",
+				"name": "sparkpool1",
+				"type": "Spark",
+				"endpoint": "https://synapsehackws.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/sparkpool1",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net",
+					"authHeader": null
+				},
+				"sparkVersion": "3.1",
+				"nodeCount": 10,
+				"cores": 16,
+				"memory": 112,
+				"extraHeader": null
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## Enriched data that has been cleaned of all erroneous data, format normalized, and enriched – store it in parquet format – create one folder for each data of data ingestion (no overwrite of the data), everything stays"
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"import datetime  \r\n",
+					"from pyspark.sql.types import StructType,StructField, StringType, IntegerType, DecimalType, DateType\r\n",
+					"\r\n",
+					"# Set the strorage path info\r\n",
+					"account_name = 'synapsehackstor' # fill in your primary storage account name\r\n",
+					"raw_container = 'raw' # fill in your container name\r\n",
+					"enriched_container = 'enriched'\r\n",
+					"\r\n",
+					"#relative_csv_path = 'HR' # fill in your relative CSV folder path\r\n",
+					"#relative_delta_path='HR/delta' # fill in your relative delta lake folder path\r\n",
+					"\r\n",
+					"raw_adls_path = 'abfss://%s@%s.dfs.core.windows.net/' % (raw_container, account_name)\r\n",
+					"enriched_adls_path = 'abfss://%s@%s.dfs.core.windows.net/' % (enriched_container, account_name)\r\n",
+					"print('Raw storage account path: ' + raw_adls_path)\r\n",
+					"print('Enriched storage account path: ' + enriched_adls_path)"
+				],
+				"execution_count": 1
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"#date_dim\r\n",
+					"raw_date_dim_path = raw_adls_path + '/mnt_ls/date_dim/*.dat'\r\n",
+					"raw_date_dim = spark.read.format(\"csv\").option(\"delimiter\", \"|\").load(raw_date_dim_path)\r\n",
+					"raw_date_dim_df = raw_date_dim.select(\r\n",
+					"    (raw_date_dim._c0.cast(IntegerType()).alias('d_date_sk')),\r\n",
+					"\t(raw_date_dim._c1.cast(StringType()).alias('d_date_id')),\r\n",
+					"\t(raw_date_dim._c2.cast(DateType()).alias('d_date')),\r\n",
+					"\t(raw_date_dim._c3.cast(IntegerType()).alias('d_month_seq')),\r\n",
+					"\t(raw_date_dim._c4.cast(IntegerType()).alias('d_week_seq')),\r\n",
+					"\t(raw_date_dim._c5.cast(IntegerType()).alias('d_quarter_seq')),\r\n",
+					"\t(raw_date_dim._c6.cast(IntegerType()).alias('d_year')),\r\n",
+					"\t(raw_date_dim._c7.cast(IntegerType()).alias('d_dow')),\r\n",
+					"\t(raw_date_dim._c8.cast(IntegerType()).alias('d_moy')),\r\n",
+					"\t(raw_date_dim._c9.cast(IntegerType()).alias('d_dom')),\r\n",
+					"\t(raw_date_dim._c10.cast(IntegerType()).alias('d_qoy')),\r\n",
+					"\t(raw_date_dim._c11.cast(IntegerType()).alias('d_fy_year')),\r\n",
+					"\t(raw_date_dim._c12.cast(IntegerType()).alias('d_fy_quarter_seq')),\r\n",
+					"\t(raw_date_dim._c13.cast(IntegerType()).alias('d_fy_week_seq')),\r\n",
+					"\t(raw_date_dim._c14.cast(StringType()).alias('d_day_name')),\r\n",
+					"\t(raw_date_dim._c15.cast(StringType()).alias('d_quarter_name')),\r\n",
+					"\t(raw_date_dim._c16.cast(StringType()).alias('d_holiday')),\r\n",
+					"\t(raw_date_dim._c17.cast(StringType()).alias('d_weekend')),\r\n",
+					"\t(raw_date_dim._c18.cast(StringType()).alias('d_following_holiday')),\r\n",
+					"\t(raw_date_dim._c19.cast(IntegerType()).alias('d_first_dom')),\r\n",
+					"\t(raw_date_dim._c20.cast(IntegerType()).alias('d_last_dom')),\r\n",
+					"\t(raw_date_dim._c21.cast(IntegerType()).alias('d_same_day_ly')),\r\n",
+					"\t(raw_date_dim._c22.cast(IntegerType()).alias('d_same_day_lq')),\r\n",
+					"\t(raw_date_dim._c23.cast(StringType()).alias('d_current_day')),\r\n",
+					"\t(raw_date_dim._c24.cast(StringType()).alias('d_current_week')),\r\n",
+					"\t(raw_date_dim._c25.cast(StringType()).alias('d_current_month')),\r\n",
+					"\t(raw_date_dim._c26.cast(StringType()).alias('d_current_quarter')),\r\n",
+					"\t(raw_date_dim._c27.cast(StringType()).alias('d_current_year'))\r\n",
+					").repartition(1)\r\n",
+					"\r\n",
+					"raw_date_dim_df.show(10)\r\n",
+					""
+				],
+				"execution_count": 12
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"#catalog_sales\r\n",
+					"raw_catalog_sales_path = raw_adls_path + '/mnt_ls/catalog_sales/*.dat'\r\n",
+					"raw_catalog_sales = spark.read.format(\"csv\").option(\"delimiter\", \"|\").load(raw_catalog_sales_path)\r\n",
+					"raw_catalog_sales_df = raw_catalog_sales.select(\r\n",
+					"\t(raw_catalog_sales._c0.cast(IntegerType()).alias('cs_sold_date_sk')),\r\n",
+					" \t(raw_catalog_sales._c1.cast(IntegerType()).alias('cs_sold_time_sk')),\r\n",
+					" \t(raw_catalog_sales._c2.cast(IntegerType()).alias('cs_ship_date_sk')),\r\n",
+					" \t(raw_catalog_sales._c3.cast(IntegerType()).alias('cs_bill_customer_sk')),\r\n",
+					" \t(raw_catalog_sales._c4.cast(IntegerType()).alias('cs_bill_cdemo_sk')),\r\n",
+					" \t(raw_catalog_sales._c5.cast(IntegerType()).alias('cs_bill_hdemo_sk')),\r\n",
+					" \t(raw_catalog_sales._c6.cast(IntegerType()).alias('cs_bill_addr_sk')),\r\n",
+					" \t(raw_catalog_sales._c7.cast(IntegerType()).alias('cs_ship_customer_sk')),\r\n",
+					" \t(raw_catalog_sales._c8.cast(IntegerType()).alias('cs_ship_cdemo_sk')),\r\n",
+					" \t(raw_catalog_sales._c9.cast(IntegerType()).alias('cs_ship_hdemo_sk')),\r\n",
+					" \t(raw_catalog_sales._c10.cast(IntegerType()).alias('cs_ship_addr_sk')),\r\n",
+					" \t(raw_catalog_sales._c11.cast(IntegerType()).alias('cs_call_center_sk')),\r\n",
+					" \t(raw_catalog_sales._c12.cast(IntegerType()).alias('cs_catalog_page_sk')),\r\n",
+					" \t(raw_catalog_sales._c13.cast(IntegerType()).alias('cs_ship_mode_sk')),\r\n",
+					" \t(raw_catalog_sales._c14.cast(IntegerType()).alias('cs_warehouse_sk')),\r\n",
+					" \t(raw_catalog_sales._c15.cast(IntegerType()).alias('cs_item_sk')),\r\n",
+					" \t(raw_catalog_sales._c16.cast(IntegerType()).alias('cs_promo_sk')),\r\n",
+					" \t(raw_catalog_sales._c17.cast(IntegerType()).alias('cs_order_number')),\r\n",
+					" \t(raw_catalog_sales._c18.cast(IntegerType()).alias('cs_quantity')),\r\n",
+					" \t(raw_catalog_sales._c19.cast(DecimalType()).alias('cs_wholesale_cost')),\r\n",
+					" \t(raw_catalog_sales._c20.cast(DecimalType()).alias('cs_list_price')),\r\n",
+					" \t(raw_catalog_sales._c21.cast(DecimalType()).alias('cs_sales_price')),\r\n",
+					" \t(raw_catalog_sales._c22.cast(DecimalType()).alias('cs_ext_discount_amt')),\r\n",
+					" \t(raw_catalog_sales._c23.cast(DecimalType()).alias('cs_ext_sales_price')),\r\n",
+					" \t(raw_catalog_sales._c24.cast(DecimalType()).alias('cs_ext_wholesale_cost')),\r\n",
+					" \t(raw_catalog_sales._c25.cast(DecimalType()).alias('cs_ext_list_price')),\r\n",
+					" \t(raw_catalog_sales._c26.cast(DecimalType()).alias('cs_ext_tax')),\r\n",
+					" \t(raw_catalog_sales._c27.cast(DecimalType()).alias('cs_coupon_amt')),\r\n",
+					" \t(raw_catalog_sales._c28.cast(DecimalType()).alias('cs_ext_ship_cost')),\r\n",
+					" \t(raw_catalog_sales._c29.cast(DecimalType()).alias('cs_net_paid')),\r\n",
+					" \t(raw_catalog_sales._c30.cast(DecimalType()).alias('cs_net_paid_inc_tax')),\r\n",
+					" \t(raw_catalog_sales._c31.cast(DecimalType()).alias('cs_net_paid_inc_ship')),\r\n",
+					" \t(raw_catalog_sales._c32.cast(DecimalType()).alias('cs_net_paid_inc_ship_tax')),\r\n",
+					"\t(raw_catalog_sales._c33.cast(DecimalType()).alias('cs_net_profit'))\r\n",
+					")\r\n",
+					"\r\n",
+					"raw_catalog_sales_df = raw_catalog_sales_df \\\r\n",
+					"    .join(raw_date_dim_df, raw_catalog_sales_df.cs_sold_date_sk == raw_date_dim_df.d_date_sk) \\\r\n",
+					"    .select(raw_catalog_sales_df.columns + ['d_year','d_qoy']) \r\n",
+					"\r\n",
+					"\r\n",
+					"raw_catalog_sales_df.show(10)\r\n",
+					"#raw_catalog_sales_df.schema\r\n",
+					""
+				],
+				"execution_count": 15
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"#call_center\r\n",
+					"raw_call_center_path = raw_adls_path + '/mnt_ls/call_center/*.dat'\r\n",
+					"raw_call_center = spark.read.format(\"csv\").option(\"delimiter\", \"|\").load(raw_call_center_path)\r\n",
+					"\r\n",
+					"raw_call_center_df = raw_call_center.select(\r\n",
+					"    (raw_call_center._c0.cast(IntegerType()).alias('cc_call_center_sk')),\r\n",
+					"\t(raw_call_center._c1.cast(StringType()).alias('cc_call_center_id')),\r\n",
+					"\t(raw_call_center._c2.cast(DateType()).alias('cc_rec_start_date')),\r\n",
+					"\t(raw_call_center._c3.cast(DateType()).alias('cc_rec_end_date')),\r\n",
+					"\t(raw_call_center._c4.cast(IntegerType()).alias('cc_closed_date_sk')),\r\n",
+					"\t(raw_call_center._c5.cast(IntegerType()).alias('cc_open_date_sk')),\r\n",
+					"\t(raw_call_center._c6.cast(StringType()).alias('cc_name')),\r\n",
+					"\t(raw_call_center._c7.cast(StringType()).alias('cc_class')),\r\n",
+					"\t(raw_call_center._c8.cast(IntegerType()).alias('cc_employees')),\r\n",
+					"\t(raw_call_center._c9.cast(IntegerType()).alias('cc_sq_ft')),\r\n",
+					"\t(raw_call_center._c10.cast(StringType()).alias('cc_hours')),\r\n",
+					"\t(raw_call_center._c11.cast(StringType()).alias('cc_manager')),\r\n",
+					"\t(raw_call_center._c12.cast(IntegerType()).alias('cc_mkt_id')),\r\n",
+					"\t(raw_call_center._c13.cast(StringType()).alias('cc_mkt_class')),\r\n",
+					"\t(raw_call_center._c14.cast(StringType()).alias('cc_mkt_desc')),\r\n",
+					"\t(raw_call_center._c15.cast(StringType()).alias('cc_market_manager')),\r\n",
+					"\t(raw_call_center._c16.cast(IntegerType()).alias('cc_division')),\r\n",
+					"\t(raw_call_center._c17.cast(StringType()).alias('cc_division_name')),\r\n",
+					"\t(raw_call_center._c18.cast(IntegerType()).alias('cc_company')),\r\n",
+					"\t(raw_call_center._c19.cast(StringType()).alias('cc_company_name')),\r\n",
+					"\t(raw_call_center._c20.cast(StringType()).alias('cc_street_number')),\r\n",
+					"\t(raw_call_center._c21.cast(StringType()).alias('cc_street_name')),\r\n",
+					"\t(raw_call_center._c22.cast(StringType()).alias('cc_street_type')),\r\n",
+					"\t(raw_call_center._c23.cast(StringType()).alias('cc_suite_number')),\r\n",
+					"\t(raw_call_center._c24.cast(StringType()).alias('cc_city')),\r\n",
+					"\t(raw_call_center._c25.cast(StringType()).alias('cc_county')),\r\n",
+					"\t(raw_call_center._c26.cast(StringType()).alias('cc_state')),\r\n",
+					"\t(raw_call_center._c27.cast(StringType()).alias('cc_zip')),\r\n",
+					"\t(raw_call_center._c28.cast(StringType()).alias('cc_country')),\r\n",
+					"\t(raw_call_center._c29.cast(DecimalType()).alias('cc_gmt_offset')),\r\n",
+					"\t(raw_call_center._c30.cast(DecimalType()).alias('cc_tax_percentage'))\r\n",
+					")\r\n",
+					"\r\n",
+					"raw_call_center.show(10)"
+				],
+				"execution_count": 4
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"#catalog_returns\r\n",
+					"raw_catalog_returns_path = raw_adls_path + '/mnt_ls/catalog_returns/*.dat'\r\n",
+					"raw_catalog_returns = spark.read.format(\"csv\").option(\"delimiter\", \"|\").load(raw_catalog_returns_path)\r\n",
+					"raw_catalog_returns_df = raw_catalog_returns.select(\r\n",
+					"    (raw_catalog_returns._c0.cast(IntegerType()).alias('cr_returned_date_sk')),\r\n",
+					"\t(raw_catalog_returns._c1.cast(IntegerType()).alias('cr_returned_time_sk')),\r\n",
+					"\t(raw_catalog_returns._c2.cast(IntegerType()).alias('cr_item_sk')),\r\n",
+					"\t(raw_catalog_returns._c3.cast(IntegerType()).alias('cr_refunded_customer_sk')),\r\n",
+					"\t(raw_catalog_returns._c4.cast(IntegerType()).alias('cr_refunded_cdemo_sk')),\r\n",
+					"\t(raw_catalog_returns._c5.cast(IntegerType()).alias('cr_refunded_hdemo_sk')),\r\n",
+					"\t(raw_catalog_returns._c6.cast(IntegerType()).alias('cr_refunded_addr_sk')),\r\n",
+					"\t(raw_catalog_returns._c7.cast(IntegerType()).alias('cr_returning_customer_sk')),\r\n",
+					"\t(raw_catalog_returns._c8.cast(IntegerType()).alias('cr_returning_cdemo_sk')),\r\n",
+					"\t(raw_catalog_returns._c9.cast(IntegerType()).alias('cr_returning_hdemo_sk')),\r\n",
+					"\t(raw_catalog_returns._c10.cast(IntegerType()).alias('cr_returning_addr_sk')),\r\n",
+					"\t(raw_catalog_returns._c11.cast(IntegerType()).alias('cr_call_center_sk')),\r\n",
+					"\t(raw_catalog_returns._c12.cast(IntegerType()).alias('cr_catalog_page_sk')),\r\n",
+					"\t(raw_catalog_returns._c13.cast(IntegerType()).alias('cr_ship_mode_sk')),\r\n",
+					"\t(raw_catalog_returns._c14.cast(IntegerType()).alias('cr_warehouse_sk')),\r\n",
+					"\t(raw_catalog_returns._c15.cast(IntegerType()).alias('cr_reason_sk')),\r\n",
+					"\t(raw_catalog_returns._c16.cast(IntegerType()).alias('cr_order_number')),\r\n",
+					"\t(raw_catalog_returns._c17.cast(IntegerType()).alias('cr_return_quantity')),\r\n",
+					"\t(raw_catalog_returns._c18.cast(DecimalType()).alias('cr_return_amount')),\r\n",
+					"\t(raw_catalog_returns._c19.cast(DecimalType()).alias('cr_return_tax')),\r\n",
+					"\t(raw_catalog_returns._c20.cast(DecimalType()).alias('cr_return_amt_inc_tax')),\r\n",
+					"\t(raw_catalog_returns._c21.cast(DecimalType()).alias('cr_fee')),\r\n",
+					"\t(raw_catalog_returns._c22.cast(DecimalType()).alias('cr_return_ship_cost')),\r\n",
+					"\t(raw_catalog_returns._c23.cast(DecimalType()).alias('cr_refunded_cash')),\r\n",
+					"\t(raw_catalog_returns._c24.cast(DecimalType()).alias('cr_reversed_charge')),\r\n",
+					"\t(raw_catalog_returns._c25.cast(DecimalType()).alias('cr_store_credit')),\r\n",
+					"\t(raw_catalog_returns._c26.cast(DecimalType()).alias('cr_net_loss'))\r\n",
+					")\r\n",
+					"\r\n",
+					"raw_catalog_returns_df.show(10)"
+				],
+				"execution_count": 5
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"#customer\r\n",
+					"raw_customer_path = raw_adls_path + '/mnt_ls/customer/*.dat'\r\n",
+					"raw_customer = spark.read.format(\"csv\").option(\"delimiter\", \"|\").load(raw_customer_path)\r\n",
+					"raw_customer_df = raw_customer.select(\r\n",
+					"    (raw_customer._c0.cast(IntegerType()).alias('c_customer_sk')),\r\n",
+					"\t(raw_customer._c1.cast(StringType()).alias('c_customer_id')),\r\n",
+					"\t(raw_customer._c2.cast(IntegerType()).alias('c_current_cdemo_sk')),\r\n",
+					"\t(raw_customer._c3.cast(IntegerType()).alias('c_current_hdemo_sk')),\r\n",
+					"\t(raw_customer._c4.cast(IntegerType()).alias('c_current_addr_sk')),\r\n",
+					"\t(raw_customer._c5.cast(IntegerType()).alias('c_first_shipto_date_sk')),\r\n",
+					"\t(raw_customer._c6.cast(IntegerType()).alias('c_first_sales_date_sk')),\r\n",
+					"\t(raw_customer._c7.cast(StringType()).alias('c_salutation')),\r\n",
+					"\t(raw_customer._c8.cast(StringType()).alias('c_first_name')),\r\n",
+					"\t(raw_customer._c9.cast(StringType()).alias('c_last_name')),\r\n",
+					"\t(raw_customer._c10.cast(StringType()).alias('c_preferred_cust_flag')),\r\n",
+					"\t(raw_customer._c11.cast(IntegerType()).alias('c_birth_day')),\r\n",
+					"\t(raw_customer._c12.cast(IntegerType()).alias('c_birth_month')),\r\n",
+					"\t(raw_customer._c13.cast(IntegerType()).alias('c_birth_year')),\r\n",
+					"\t(raw_customer._c14.cast(StringType()).alias('c_birth_country')),\r\n",
+					"\t(raw_customer._c15.cast(StringType()).alias('c_login')),\r\n",
+					"\t(raw_customer._c16.cast(StringType()).alias('c_email_address')),\r\n",
+					"\t(raw_customer._c17.cast(StringType()).alias('c_last_review_date'))\r\n",
+					").drop_duplicates().repartition(1)\r\n",
+					"\r\n",
+					"raw_customer_df.show(10)\r\n",
+					"\r\n",
+					""
+				],
+				"execution_count": 9
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"#customer_address\r\n",
+					"raw_customer_address_path = raw_adls_path + '/mnt_ls/customer_address/*.dat'\r\n",
+					"raw_customer_address = spark.read.format(\"csv\").option(\"delimiter\", \"|\").load(raw_customer_address_path)\r\n",
+					"raw_customer_address_df = raw_customer_address.select(\r\n",
+					"    (raw_customer_address._c0.cast(IntegerType()).alias('ca_address_sk')),\r\n",
+					"\t(raw_customer_address._c1.cast(StringType()).alias('ca_address_id')),\r\n",
+					"\t(raw_customer_address._c2.cast(StringType()).alias('ca_street_number')),\r\n",
+					"\t(raw_customer_address._c3.cast(StringType()).alias('ca_street_name')),\r\n",
+					"\t(raw_customer_address._c4.cast(StringType()).alias('ca_street_type')),\r\n",
+					"\t(raw_customer_address._c5.cast(StringType()).alias('ca_suite_number')),\r\n",
+					"\t(raw_customer_address._c6.cast(StringType()).alias('ca_city')),\r\n",
+					"\t(raw_customer_address._c7.cast(StringType()).alias('ca_county')),\r\n",
+					"\t(raw_customer_address._c8.cast(StringType()).alias('ca_state')),\r\n",
+					"\t(raw_customer_address._c9.cast(StringType()).alias('ca_zip')),\r\n",
+					"\t(raw_customer_address._c10.cast(StringType()).alias('ca_country')),\r\n",
+					"\t(raw_customer_address._c11.cast(DecimalType()).alias('ca_gmt_offset')),\r\n",
+					"\t(raw_customer_address._c12.cast(StringType()).alias('ca_location_type'))\r\n",
+					").repartition(1)\r\n",
+					"\r\n",
+					"raw_customer_address_df.show(10)\r\n",
+					""
+				],
+				"execution_count": 11
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"#customer_demographics\r\n",
+					"raw_customer_demographics_path = raw_adls_path + '/mnt_ls/customer_demographics/*.dat'\r\n",
+					"raw_customer_demographics = spark.read.format(\"csv\").option(\"delimiter\", \"|\").load(raw_customer_demographics_path)\r\n",
+					"\r\n",
+					"raw_customer_demographics_df = raw_customer_demographics.select(\r\n",
+					"    (raw_customer_demographics._c0.cast(IntegerType()).alias('cd_demo_sk')),\r\n",
+					"\t(raw_customer_demographics._c1.cast(StringType()).alias('cd_gender')),\r\n",
+					"\t(raw_customer_demographics._c2.cast(StringType()).alias('cd_marital_status')),\r\n",
+					"\t(raw_customer_demographics._c3.cast(StringType()).alias('cd_education_status')),\r\n",
+					"\t(raw_customer_demographics._c4.cast(IntegerType()).alias('cd_purchase_estimate')),\r\n",
+					"\t(raw_customer_demographics._c5.cast(StringType()).alias('cd_credit_rating')),\r\n",
+					"\t(raw_customer_demographics._c6.cast(IntegerType()).alias('cd_dep_count')),\r\n",
+					"\t(raw_customer_demographics._c7.cast(IntegerType()).alias('cd_dep_employed_count')),\r\n",
+					"\t(raw_customer_demographics._c8.cast(IntegerType()).alias('cd_dep_college_count'))\r\n",
+					")\r\n",
+					"\r\n",
+					"raw_customer_demographics_df.show(10)"
+				],
+				"execution_count": 8
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"#inventory\r\n",
+					"raw_inventory_path = raw_adls_path + '/mnt_ls/inventory/*.dat'\r\n",
+					"raw_inventory = spark.read.format(\"csv\").option(\"delimiter\", \"|\").load(raw_inventory_path)\r\n",
+					"raw_inventory_df = raw_inventory.select(\r\n",
+					"    (raw_inventory._c0.cast(IntegerType()).alias('inv_date_sk')),\r\n",
+					"\t(raw_inventory._c1.cast(IntegerType()).alias('inv_item_sk')),\r\n",
+					"\t(raw_inventory._c2.cast(IntegerType()).alias('inv_warehouse_sk')),\r\n",
+					"\t(raw_inventory._c3.cast(IntegerType()).alias('inv_quantity_on_hand'))\r\n",
+					")\r\n",
+					"\r\n",
+					"raw_inventory_df.show(10)"
+				],
+				"execution_count": 9
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"#item\r\n",
+					"raw_item_path = raw_adls_path + '/mnt_ls/item/*.dat'\r\n",
+					"raw_item = spark.read.format(\"csv\").option(\"delimiter\", \"|\").load(raw_item_path)\r\n",
+					"raw_item_df = raw_item.select(\r\n",
+					"    (raw_item._c0.cast(IntegerType()).alias('i_item_sk')),\r\n",
+					"\t(raw_item._c1.cast(StringType()).alias('i_item_id')),\r\n",
+					"\t(raw_item._c2.cast(DateType()).alias('i_rec_start_date')),\r\n",
+					"\t(raw_item._c3.cast(DateType()).alias('i_rec_end_date')),\r\n",
+					"\t(raw_item._c4.cast(StringType()).alias('i_item_desc')),\r\n",
+					"\t(raw_item._c5.cast(DecimalType()).alias('i_current_price')),\r\n",
+					"\t(raw_item._c6.cast(DecimalType()).alias('i_wholesale_cost')),\r\n",
+					"\t(raw_item._c7.cast(IntegerType()).alias('i_brand_id')),\r\n",
+					"\t(raw_item._c8.cast(StringType()).alias('i_brand')),\r\n",
+					"\t(raw_item._c9.cast(IntegerType()).alias('i_class_id')),\r\n",
+					"\t(raw_item._c10.cast(StringType()).alias('i_class')),\r\n",
+					"\t(raw_item._c11.cast(IntegerType()).alias('i_category_id')),\r\n",
+					"\t(raw_item._c12.cast(StringType()).alias('i_category')),\r\n",
+					"\t(raw_item._c13.cast(IntegerType()).alias('i_manufact_id')),\r\n",
+					"\t(raw_item._c14.cast(StringType()).alias('i_manufact')),\r\n",
+					"\t(raw_item._c15.cast(StringType()).alias('i_size')),\r\n",
+					"\t(raw_item._c16.cast(StringType()).alias('i_formulation')),\r\n",
+					"\t(raw_item._c17.cast(StringType()).alias('i_color')),\r\n",
+					"\t(raw_item._c18.cast(StringType()).alias('i_units')),\r\n",
+					"\t(raw_item._c19.cast(StringType()).alias('i_container')),\r\n",
+					"\t(raw_item._c20.cast(IntegerType()).alias('i_manager_id')),\r\n",
+					"\t(raw_item._c21.cast(StringType()).alias('i_product_name'))\r\n",
+					")\r\n",
+					"\r\n",
+					"raw_item_df.show(10)"
+				],
+				"execution_count": 10
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"#promotion\r\n",
+					"raw_promotion_path = raw_adls_path + '/mnt_ls/promotion/*.dat'\r\n",
+					"raw_promotion = spark.read.format(\"csv\").option(\"delimiter\", \"|\").load(raw_promotion_path)\r\n",
+					"raw_promotion_df = raw_promotion.select(\r\n",
+					"    (raw_promotion._c0.cast(IntegerType()).alias('p_promo_sk')),\r\n",
+					"\t(raw_promotion._c1.cast(StringType()).alias('p_promo_id')),\r\n",
+					"\t(raw_promotion._c2.cast(IntegerType()).alias('p_start_date_sk')),\r\n",
+					"\t(raw_promotion._c3.cast(IntegerType()).alias('p_end_date_sk')),\r\n",
+					"\t(raw_promotion._c4.cast(IntegerType()).alias('p_item_sk')),\r\n",
+					"\t(raw_promotion._c5.cast(DecimalType()).alias('p_cost')),\r\n",
+					"\t(raw_promotion._c6.cast(IntegerType()).alias('p_response_target')),\r\n",
+					"\t(raw_promotion._c7.cast(StringType()).alias('p_promo_name')),\r\n",
+					"\t(raw_promotion._c8.cast(StringType()).alias('p_channel_dmail')),\r\n",
+					"\t(raw_promotion._c9.cast(StringType()).alias('p_channel_email')),\r\n",
+					"\t(raw_promotion._c10.cast(StringType()).alias('p_channel_catalog')),\r\n",
+					"\t(raw_promotion._c11.cast(StringType()).alias('p_channel_tv')),\r\n",
+					"\t(raw_promotion._c12.cast(StringType()).alias('p_channel_radio')),\r\n",
+					"\t(raw_promotion._c13.cast(StringType()).alias('p_channel_press')),\r\n",
+					"\t(raw_promotion._c14.cast(StringType()).alias('p_channel_event')),\r\n",
+					"\t(raw_promotion._c15.cast(StringType()).alias('p_channel_demo')),\r\n",
+					"\t(raw_promotion._c16.cast(StringType()).alias('p_channel_details')),\r\n",
+					"\t(raw_promotion._c17.cast(StringType()).alias('p_purpose')),\r\n",
+					"\t(raw_promotion._c18.cast(StringType()).alias('p_discount_active'))\r\n",
+					")\r\n",
+					"\r\n",
+					"raw_promotion_df.show(10)"
+				],
+				"execution_count": 11
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"#warehouse\r\n",
+					"raw_warehouse_path = raw_adls_path + '/mnt_ls/warehouse/*.dat'\r\n",
+					"raw_warehouse = spark.read.format(\"csv\").option(\"delimiter\", \"|\").load(raw_warehouse_path)\r\n",
+					"raw_warehouse_df = raw_warehouse.select(\r\n",
+					"   \t(raw_warehouse._c0.cast(IntegerType()).alias('w_warehouse_sk')),\r\n",
+					"\t(raw_warehouse._c1.cast(StringType()).alias('w_warehouse_id')),\r\n",
+					"\t(raw_warehouse._c2.cast(StringType()).alias('w_warehouse_name')),\r\n",
+					"\t(raw_warehouse._c3.cast(IntegerType()).alias('w_warehouse_sq_ft')),\r\n",
+					"\t(raw_warehouse._c4.cast(StringType()).alias('w_street_number')),\r\n",
+					"\t(raw_warehouse._c5.cast(StringType()).alias('w_street_name')),\r\n",
+					"\t(raw_warehouse._c6.cast(StringType()).alias('w_street_type')),\r\n",
+					"\t(raw_warehouse._c7.cast(StringType()).alias('w_suite_number')),\r\n",
+					"\t(raw_warehouse._c8.cast(StringType()).alias('w_city')),\r\n",
+					"\t(raw_warehouse._c9.cast(StringType()).alias('w_county')),\r\n",
+					"\t(raw_warehouse._c10.cast(StringType()).alias('w_state')),\r\n",
+					"\t(raw_warehouse._c11.cast(StringType()).alias('w_zip')),\r\n",
+					"\t(raw_warehouse._c12.cast(StringType()).alias('w_country')),\r\n",
+					"\t(raw_warehouse._c13.cast(DecimalType()).alias('w_gmt_offset'))\r\n",
+					")\r\n",
+					"\r\n",
+					"raw_warehouse_df.show(10)\r\n",
+					""
+				],
+				"execution_count": 12
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# could be paramterized\r\n",
+					"\r\n",
+					"#Get current date and time\r\n",
+					"now = datetime.datetime.now()\r\n",
+					"print (now.strftime(\"%Y-%m-%d %H:%M:%S\"))\r\n",
+					"\r\n",
+					"#write to parquet files in enriched zone\r\n",
+					"raw_call_center_df.write.option(\"header\",True).mode(\"overwrite\").parquet(enriched_adls_path + \"/\" + now.strftime(\"%Y-%m-%d\") + \"/call_center/\")\r\n",
+					"raw_catalog_returns_df.write.option(\"header\",True).mode(\"overwrite\").parquet(enriched_adls_path + \"/\" + now.strftime(\"%Y-%m-%d\") + \"/catalog_returns/\")\r\n",
+					"\r\n",
+					"raw_catalog_sales_df.write.mode(\"overwrite\").format(\"parquet\").option(\"header\",True).partitionBy(\"d_year\", \"d_qoy\", \"d_moy\").save(enriched_adls_path + \"/\" + now.strftime(\"%Y-%m-%d\") + \"/catalog_sales/\")\r\n",
+					"\r\n",
+					"raw_customer_df.write.option(\"header\",True).mode(\"overwrite\").parquet(enriched_adls_path + \"/\" + now.strftime(\"%Y-%m-%d\") + \"/customer/\") \r\n",
+					"raw_customer_address_df.write.option(\"header\",True).mode(\"overwrite\").parquet(enriched_adls_path + \"/\" + now.strftime(\"%Y-%m-%d\") + \"/customer_address/\")\r\n",
+					"raw_customer_demographics_df.write.option(\"header\",True).mode(\"overwrite\").parquet(enriched_adls_path + \"/\" + now.strftime(\"%Y-%m-%d\") + \"/customer_demographics/\")\r\n",
+					"raw_date_dim_df.write.option(\"header\",True).mode(\"overwrite\").parquet(enriched_adls_path + \"/\" + now.strftime(\"%Y-%m-%d\") + \"/date_dim/\")\r\n",
+					"raw_inventory_df.write.option(\"header\",True).mode(\"overwrite\").parquet(enriched_adls_path + \"/\" + now.strftime(\"%Y-%m-%d\") + \"/inventory/\")\r\n",
+					"raw_item_df.write.option(\"header\",True).mode(\"overwrite\").parquet(enriched_adls_path + \"/\" + now.strftime(\"%Y-%m-%d\") + \"/item/\")\r\n",
+					"raw_promotion_df.write.option(\"header\",True).mode(\"overwrite\").parquet(enriched_adls_path + \"/\" + now.strftime(\"%Y-%m-%d\") + \"/promotion/\")\r\n",
+					"raw_warehouse_df.write.option(\"header\",True).mode(\"overwrite\").parquet(enriched_adls_path + \"/\" + now.strftime(\"%Y-%m-%d\") + \"/warehouse/\")\r\n",
+					""
+				],
+				"execution_count": 13
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"now = datetime.datetime.now()\r\n",
+					"print (now.strftime(\"%Y-%m-%d %H:%M:%S\"))\r\n",
+					"\r\n",
+					"#raw_catalog_sales_df.write.option(\"header\",True).mode(\"overwrite\").parquet(enriched_adls_path + \"/\" + now.strftime(\"%Y-%m-%d\") + \"/catalog_sales/\").partitionBy(\"d_year\",\"d_qoy\",\"d_moy\")\r\n",
+					"\r\n",
+					"#try this >\r\n",
+					"#raw_catalog_sales_df.write.mode(\"overwrite\").format(\"parquet\").option(\"header\",True).partitionBy(\"d_year\", \"d_qoy\", \"d_moy\").save(enriched_adls_path + \"/\" + now.strftime(\"%Y-%m-%d\") + \"/catalog_sales/\")\r\n",
+					"raw_customer_df.write.option(\"header\",True).mode(\"overwrite\").parquet(enriched_adls_path + \"/\" + now.strftime(\"%Y-%m-%d\") + \"/customer/\").repartition(numFiles)\r\n",
+					"raw_customer_address_df.write.option(\"header\",True).mode(\"overwrite\").parquet(enriched_adls_path + \"/\" + now.strftime(\"%Y-%m-%d\") + \"/customer_address/\")\r\n",
+					"#raw_customer_demographics_df.write.option(\"header\",True).mode(\"overwrite\").parquet(enriched_adls_path + \"/\" + now.strftime(\"%Y-%m-%d\") + \"/customer_demographics/\")\r\n",
+					"raw_date_dim_df.write.option(\"header\",True).mode(\"overwrite\").parquet(enriched_adls_path + \"/\" + now.strftime(\"%Y-%m-%d\") + \"/date_dim/\")"
+				],
+				"execution_count": 48
+			}
+		]
+	}
+}
